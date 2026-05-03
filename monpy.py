@@ -200,6 +200,7 @@ class MonPy:
         """
         for check in self.checks:
             if self.args.check is not None and self.args.check != check.name:
+                self.logger.debug("Not running check '%s' due to argument '%s'", check.name, self.args.check)
                 continue
 
             self.current_check = check
