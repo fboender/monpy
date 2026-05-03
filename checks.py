@@ -71,6 +71,7 @@ def proc_with_high_mem():
                 f"Process '{process['exe']}' (pid: {process['pid']}) uses more than {PROC_HIGH_MEM_MB} MB of memory ({mem_usage_gb:.2f} MM)",
                 ident=process["pid"]
             )
+
 @monpy.check(hourly, daily)
 def docker_wildcard_bind():
     """
