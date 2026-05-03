@@ -23,3 +23,17 @@ TEMP_PATHS = [
 
 LOAD_MAX = 0.8
 LOAD_SAMPLES = 5
+
+HOST_PORTS_REACHABLE = [
+    ("some.example.com", 80),
+    ("some.example.com", 443),
+    ("192.168.1.1", 22),
+]
+
+HTTP_BODY_CHECKS = [
+    ("https://www.electricmonk.nl/log/", 200, "Programmer, DevOpper, Open Source enthusiast"),
+]
+
+SSL_CERT_CHECKS = [
+    ("www.electricmonk.nl", 443, 7),
+]

@@ -1,6 +1,7 @@
 #!/bin/env python3
 
 import stat
+import datetime
 
 from monpy import *
 from config import *
@@ -205,6 +206,55 @@ def executables_in_tmp():
             monpy.alert(
                 f"Executable found in temp dir: {file['path']}",
                 ident=file["path"]
+            )
+
+@monpy.check(minutely * 5, hourly)
+def host_ports_reachable():
+    for host_port in HOST_PORTS_REACHABLE:
+        try:
+            hostname = host_port[0]
+            port = host_port[1]
+            reachable = collectors.tcp_connect(hostname, port, raise_exception=True)
+        except (ConnectionRefusedError, TimeoutError) as err:
+            monpy.alert(
+                f"Host '{hostname}:{port}' unreachable: {str(err)}'",
+                ident=f"{hostname}:{port}"
+            )
+
+@monpy.check(minutely * 15, hourly)
+def http_body():
+    """
+    Check some sites and make sure they're responding with the right data
+    """
+    for check in HTTP_BODY_CHECKS:
+        url, required_status, found_in_body = check
+        res = collectors.http(url)
+        if res["status"] != required_status:
+            monpy.alert(
+                f"URL '{url} returned status {res['status']}, while '{required_status}' was expected'",
+                ident=f"{url}"
+            )
+        if found_in_body not in res["body"]:
+            monpy.alert(
+                f"URL '{url} response body didn't contain required text '{found_in_body}'",
+                ident=f"{url}"
+            )
+
+@monpy.check(daily, hourly)
+def ssl_expire():
+    """
+    Check some sites for expiring ssl certs
+    """
+    for check in SSL_CERT_CHECKS:
+        host, port, days = check
+
+        ssl_info = collectors.ssl_cert(host, port)
+        now = datetime.datetime.now()
+        expires_in_days = (ssl_info["notAfter_dt"] - now).days
+        if expires_in_days <= days:
+            monpy.alert(
+                f"SSL certificate for '{host}:{port} expires in {expires_in_days} days ({ssl_info['notAfter_dt']})",
+                ident=f"{host}:{port}"
             )
 
 monpy.run()
