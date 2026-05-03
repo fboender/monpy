@@ -1,0 +1,25 @@
+PUSHOVER_USER_TOKEN = ""
+PUSHOVER_APP_TOKEN = ""
+
+DISK_SPACE_FREE_PERC = 10
+
+LOW_MEM_AVAIL_PERC = 10
+
+PROC_HIGH_MEM_MB = 800
+
+ALLOW_DOCKER_WILDCARD_BINDS = [
+    "3478/tcp",   # NextCloud Talk
+    "3478/udp",   # NextCloud Talk
+]
+
+ALLOW_CONTAINER_DOCKER_SOCKET = [
+]
+
+TEMP_PATHS = [
+    "/tmp",
+    "/var/tmp",
+    "/run/user"
+]
+
+LOAD_MAX = 0.8
+LOAD_SAMPLES = 5
