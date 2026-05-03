@@ -46,6 +46,31 @@ def cpu_usage():
             f"Average load of last {LOAD_SAMPLES} minutes higher than {LOAD_MAX} ({avg})"
         )
 
+@monpy.check(minutely, hourly)
+def low_mem():
+    """
+    Check for low available memory
+    """
+    meminfo = collectors.memory()
+    avail_p = meminfo["MemAvailablePerc"]
+    avail_mb = meminfo['MemAvailable'] / (1024 ** 2)
+    if meminfo["MemAvailablePerc"] < LOW_MEM_AVAIL_PERC:
+        monpy.alert(
+            f"Less than {LOW_MEM_AVAIL_PERC}% available memory ({avail_p:.0f}%, {avail_mb:.0f} MB)"
+        )
+
+@monpy.check(minutely, hourly)
+def proc_with_high_mem():
+    """
+    Check for processes using a lot of memory
+    """
+    for process in collectors.processes():
+        if process.get("vmrss", 0) > PROC_HIGH_MEM_MB * (1024 ** 2):
+            mem_usage_gb = process["vmrss"] / (1024 ** 2)
+            monpy.alert(
+                f"Process '{process['exe']}' (pid: {process['pid']}) uses more than {PROC_HIGH_MEM_MB} MB of memory ({mem_usage_gb:.2f} MM)",
+                ident=process["pid"]
+            )
 @monpy.check(hourly, daily)
 def docker_wildcard_bind():
     """
@@ -116,32 +141,6 @@ def docker_mount_socket():
                     f"Container '{container['Name'].lstrip('/')}' mounts the docker socket in the container",
                     ident=container_name
                 )
-
-@monpy.check(minutely, hourly)
-def proc_with_high_mem():
-    """
-    Check for processes using a lot of memory
-    """
-    for process in collectors.processes():
-        if process.get("vmrss", 0) > PROC_HIGH_MEM_MB * (1024 ** 2):
-            mem_usage_gb = process["vmrss"] / (1024 ** 2)
-            monpy.alert(
-                f"Process '{process['exe']}' (pid: {process['pid']}) uses more than {PROC_HIGH_MEM_MB} MB of memory ({mem_usage_gb:.2f} MM)",
-                ident=process["pid"]
-            )
-
-@monpy.check(minutely, hourly)
-def low_mem():
-    """
-    Check for low available memory
-    """
-    meminfo = collectors.memory()
-    avail_p = meminfo["MemAvailablePerc"]
-    avail_mb = meminfo['MemAvailable'] / (1024 ** 2)
-    if meminfo["MemAvailablePerc"] < LOW_MEM_AVAIL_PERC:
-        monpy.alert(
-            f"Less than {LOW_MEM_AVAIL_PERC}% available memory ({avail_p:.0f}%, {avail_mb:.0f} MB)"
-        )
 
 @monpy.check(hourly, daily)
 def mail():
