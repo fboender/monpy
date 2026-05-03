@@ -28,7 +28,7 @@ cronjob:
 
     * * * * * cd /opt/monpy && ./checks.py
 
-Example ouput:
+Example ouput (`-vvv` verbose mode):
 
     2026-05-03 11:12:08,392     INFO check | Running check 'docker_wildcard_bind'
     2026-05-03 11:12:08,394     INFO root | Supressing alert for 'docker_wildcard_bind'. Alert interval (86400s) not reached (1318s elapsed). Alert: Container 'nextcloud-aio-mastercontainer' exposes port 8080/tcp on all interfaces (0.0.0.0)
