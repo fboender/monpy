@@ -66,8 +66,10 @@ Various [collectors](collectors/) are provided:
 * [`cpu`](collectors/cpu.py): CPU usage / load averages
 * [`memory`](collectors/memory.py): Memory utilization (total, free, used,
   available) including in percentages
-* [`mounts`](collectors/mounts.py): Mount point information, include free / used
+* [`mounts`](collectors/mounts.py): Mount point information, including free / used
   disk space
+* [`net`](collectors/net.py): TCP connections, HTTP calls and SSL certificate
+  information.
 * [`processes`](collectors/processes.py): Running process information, including
   the PID, path to the process, current working dir, environment and process
   status (`/proc/<PID>/status`)
