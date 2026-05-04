@@ -37,7 +37,6 @@ class Check:
         self.alert_interval = alert_interval
         self.last_run = last_run
         self.force = force
-        self.exit_code = 0
 
         self.logger = logging.getLogger("check")
 
@@ -49,16 +48,17 @@ class Check:
             return
 
         self.logger.info("Running check '%s'", self.name)
+        return_value = None
         try:
             self.func()
         except Exception as err:
-            self.exit_code = 1
+            return_value = err
             self.logger.exception(err)
             traceback.print_exc()
 
         self.last_run = int(time.time())
 
-        sys.exit(self.exit_code)
+        return return_value
 
     def __repr__(self):
         return f"<{self.__class__.__name__} " \
@@ -214,13 +214,18 @@ class MonPy:
         """
         Run all registered monitoring checks
         """
+        exit_code = 0
+
         for check in self.checks:
             if self.args.check is not None and self.args.check != check.name:
                 self.logger.debug("Not running check '%s' due to argument '%s'", check.name, self.args.check)
                 continue
 
             self.current_check = check
-            check.run()
+            result = check.run()
+            if result is not None:
+                # Error occured
+                exit_code = 1
             self.current_check = None
 
             # Save check state
@@ -228,6 +233,7 @@ class MonPy:
             check_state["last_run"] = check.last_run
 
         self._state_save()
+        sys.exit(exit_code)
 
     def alert(self, msg, ident=None):
         """
