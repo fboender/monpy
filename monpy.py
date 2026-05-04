@@ -96,6 +96,13 @@ class MonPy:
                             action="store_true",
                             default=False,
                             help="Force alerts to be generated")
+        parser.add_argument('--log-file',
+                            metavar='PATH',
+                            dest='log_file',
+                            type=str,
+                            default=None,
+                            help='Log to file. If not given, log to stderr')
+
         parser.add_argument("check",
                             metavar="CHECK",
                             type=str,
@@ -112,7 +119,10 @@ class MonPy:
             loglevel = logging.DEBUG
 
         # Configure application logging
-        handler = logging.StreamHandler()
+        if self.args.log_file is None:
+            handler = logging.StreamHandler()
+        else:
+            handler = logging.FileHandler(self.args.log_file)
         fmt = '%(asctime)s %(levelname)8s %(name)s | %(message)s'
         formatter = logging.Formatter(fmt)
         handler.setFormatter(formatter)
