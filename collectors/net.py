@@ -1,7 +1,6 @@
 import socket
 from urllib.request import Request, urlopen
 import base64
-import json
 import socket
 import ssl
 import datetime
