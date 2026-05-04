@@ -44,19 +44,20 @@ Example ouput (`-vvv` verbose mode):
 # Checks
 
 Checks are written in Python as functions with the `monpy.check()` decorator.
+
 For example, the following check runs every minute, and alerts once an hour if
 a problem occurs. It uses the "load" [collectors](collectors/) to retrieve the
-current system load. It then checks the average of the last `LOAD_SAMPLES`
-(configurable, see [config.py.dist](config.py.dist)) samples:
+current system load. It then checks if the average of the last 5 samples (so a
+total of 5 minutes) is higher than 0.9. If so, it sends an alert.
 
     @monpy.check(60, 60*60)
     def cpu_usage():
         load = collectors.load()
         history = monpy.history(load["1min"], LOAD_SAMPLES)
         avg = sum(history) / len(history)
-        if avg > LOAD_MAX:
+        if avg > 0.9:
             monpy.alert(
-                f"Average load of last {LOAD_SAMPLES} minutes higher than {LOAD_MAX} ({avg})"
+                f"Average load of last 5 minutes higher than 0.9 ({avg})"
             )
 
 # Collectors
