@@ -235,7 +235,7 @@ class MonPy:
         self._state_save()
         sys.exit(exit_code)
 
-    def alert(self, msg, ident=None):
+    def alert(self, msg, ident=None, alerter=None):
         """
         Alert about a problem if alert_interval has been reached, using the
         configured alerter (`self.alerter`).
@@ -263,7 +263,7 @@ class MonPy:
             )
             return
 
-        if self.alerter is None:
+        if self.alerter is None and alerter is None:
             self.logger.error(
                 "Not sending alert (no alerter configured) for '%s': %s",
                 self.current_check.name,
@@ -276,5 +276,11 @@ class MonPy:
             self.current_check.name,
             msg
         )
-        self.alerter.alert(msg)
+        if alerter is not None:
+            # Use alerter provided as argument
+            alerter.alert(msg)
+        else:
+            # Use default alerter
+            self.alerter.alert(msg)
+
         self.state["alerts"][full_ident] = now
