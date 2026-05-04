@@ -66,6 +66,15 @@ def proc_with_high_mem():
     """
     for process in collectors.processes():
         if process.get("vmrss", 0) > PROC_HIGH_MEM_MB * (1024 ** 2):
+            ignore = False
+            for process_name in PROC_HIGH_MEM_IGNORE:
+                if process_name in process["cmdline"]:
+                    ignore = True
+                    break
+
+            if ignore:
+                continue
+
             mem_usage_gb = process["vmrss"] / (1024 ** 2)
             monpy.alert(
                 f"Process '{process['exe']}' (pid: {process['pid']}) uses more than {PROC_HIGH_MEM_MB} MB of memory ({mem_usage_gb:.2f} MM)",
