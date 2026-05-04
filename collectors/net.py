@@ -85,4 +85,7 @@ def ssl_cert(host, port=443):
     if info["notBefore"]:
         info["notBefore_dt"] = datetime.datetime.strptime(info["notBefore"], "%b %d %H:%M:%S %Y %Z")
 
+    now = datetime.datetime.now()
+    info["expiresDays"] = (info["notAfter_dt"] - now).days
+
     return info
