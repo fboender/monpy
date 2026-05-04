@@ -1,3 +1,32 @@
+"""
+Collector that gathers information about a local Git repository.
+
+By default it will try to do a `git fetch` on the repo to fetch new changes,
+without merging, rebasing or fast-forwarding the current branch. If you don't
+want to fetch, you can pass `fetch=False` as a parameter.
+
+You'll probably want to use a [fine-grained personal access
+token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#fine-grained-personal-access-tokens)
+to clone the repo.
+
+Repository info example:
+
+    {
+        "path": "/opt/apps/monpy",
+        "cur_branch": "main",
+        "remote_branch": "origin/main",
+        "ahead": 0,
+        "behind": 2,
+        "has_changes": false,
+        "modified": [],
+        "deleted": [],
+        "untracked": []
+    }
+
+Where `modified`, `deleted` and `untracked` are lists of files in the repo that
+have those changes.
+"""
+
 import logging
 import os
 import subprocess
