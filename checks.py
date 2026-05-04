@@ -256,7 +256,7 @@ def http_body():
                 ident=f"{url}"
             )
 
-@monpy.check(daily, hourly)
+@monpy.check(daily, daily)
 def ssl_expire():
     """
     Check some sites for expiring ssl certs
