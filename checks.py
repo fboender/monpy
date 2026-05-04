@@ -68,7 +68,7 @@ def proc_with_high_mem():
         if process.get("vmrss", 0) > PROC_HIGH_MEM_MB * (1024 ** 2):
             ignore = False
             for process_name in PROC_HIGH_MEM_IGNORE:
-                if process_name in process["cmdline"]:
+                if process_name in process["exe"]:
                     ignore = True
                     break
 
