@@ -69,6 +69,9 @@ def ssl_cert(host, port=443):
     """
     Fetch information about SSL certificate
     """
+    def flatten_name(x):
+        return {k: v for tup in x for k, v in tup}
+
     ctx = ssl.create_default_context()
 
     with socket.create_connection((host, port)) as sock:
@@ -77,28 +80,28 @@ def ssl_cert(host, port=443):
             cert_bin = ssock.getpeercert(binary_form=True)
 
     info = {
-        "subject": cert.get("subject"),
-        "issuer": cert.get("issuer"),
+        "subject": flatten_name(cert.get("subject", [])),
+        "issuer": flatten_name(cert.get("issuer", [])),
         "version": cert.get("version"),
-        "serialNumber": cert.get("serialNumber"),
-        "notBefore": cert.get("notBefore"),
-        "notAfter": cert.get("notAfter"),
-        "subjectAltName": cert.get("subjectAltName"),
+        "serial_number": cert.get("serialNumber"),
+        "not_before": cert.get("notBefore"),
+        "not_after": cert.get("notAfter"),
+        "san": dict(cert.get("subjectAltName", [])),  # {'DNS': 'example.com', ...}
     }
 
-    if info["notAfter"]:
-        info["notAfter_dt"] = datetime.datetime.strptime(info["notAfter"], "%b %d %H:%M:%S %Y %Z")
-    if info["notBefore"]:
-        info["notBefore_dt"] = datetime.datetime.strptime(info["notBefore"], "%b %d %H:%M:%S %Y %Z")
+    if info["not_after"]:
+        info["not_after_dt"] = datetime.datetime.strptime(info["not_after"], "%b %d %H:%M:%S %Y %Z")
+    if info["not_before"]:
+        info["not_before_dt"] = datetime.datetime.strptime(info["not_before"], "%b %d %H:%M:%S %Y %Z")
 
     now = datetime.datetime.now()
-    info["expiresDays"] = (info["notAfter_dt"] - now).days
+    info["expires_days"] = (info["not_after_dt"] - now).days
 
     logger.debug(
-        "Certificate %s for host %s:%s expires in %s days",
-        info["subject"],
+        "Certificate (CN='%s') for host %s:%s expires in %s days",
+        info["subject"]["commonName"],
         host,
         port,
-        info["expiresDays"]
+        info["expires_days"]
     )
     return info

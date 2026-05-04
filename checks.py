@@ -256,9 +256,10 @@ def ssl_expire():
         host, port, days = check
 
         ssl_info = collectors.ssl_cert(host, port)
-        if ssl_info["expiresDays"] <= days:
+        subject = ssl_info["subject"]["commonName"]
+        if ssl_info["expires_days"] <= days:
             monpy.alert(
-                f"SSL certificate for '{host}:{port} expires in {expires_in_days} days ({ssl_info['notAfter_dt']})",
+                f"SSL certificate for '{host}:{port}' (CN={subject}) expires in {ssl_info['expires_days']} days ({ssl_info['not_after_dt']})",
                 ident=f"{host}:{port}"
             )
 
