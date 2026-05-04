@@ -1,9 +1,12 @@
+import logging
 import socket
 from urllib.request import Request, urlopen
 import base64
 import socket
 import ssl
 import datetime
+
+logger = logging.getLogger(__package__)
 
 
 def tcp_connect(host, port, timeout=3, raise_exception=False):
@@ -13,8 +16,10 @@ def tcp_connect(host, port, timeout=3, raise_exception=False):
     """
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.settimeout(timeout)
+    logger.debug("Testing TCP connect to %s:%s (timeout=%s)", host, port, timeout)
     try:
         s.connect((host, port))
+        logger.debug("Connection to %s:%s successfull", host, port)
         return True
     except (ConnectionRefusedError, TimeoutError):
         if raise_exception is True:
@@ -44,6 +49,7 @@ def http(url,
     if content_type is not None:
         headers["Content-Type"] = content_type
 
+    logger.debug("Making HTTP %s call to %s", method, url)
     req = Request(
         url,
         method=method,
@@ -52,6 +58,7 @@ def http(url,
     )
 
     with urlopen(req) as response:
+        logger.debug("Response status: %s", response.status)
         return {
             "status": response.status,
             "body": response.read().decode(),
@@ -87,4 +94,11 @@ def ssl_cert(host, port=443):
     now = datetime.datetime.now()
     info["expiresDays"] = (info["notAfter_dt"] - now).days
 
+    logger.debug(
+        "Certificate %s for host %s:%s expires in %s days",
+        info["subject"],
+        host,
+        port,
+        info["expiresDays"]
+    )
     return info
