@@ -74,6 +74,7 @@ def ssl_cert(host, port=443):
 
     ctx = ssl.create_default_context()
 
+    logger.debug("Creating SSL connection to %s:%s", host, port)
     with socket.create_connection((host, port)) as sock:
         with ctx.wrap_socket(sock, server_hostname=host) as ssock:
             cert = ssock.getpeercert()
