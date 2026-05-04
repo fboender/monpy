@@ -73,6 +73,14 @@ def proc_with_high_mem():
                 ident=process["pid"]
             )
 
+@monpy.check(daily, daily)
+def high_uptime():
+    uptime = collectors.uptime()
+    if uptime["uptime"] > UPTIME_DAYS * 24 * 60 * 60:
+        monpy.alert(
+            f"Uptime is higher than {UPTIME_DAYS} days"
+        )
+
 @monpy.check(hourly, daily)
 def docker_wildcard_bind():
     """
