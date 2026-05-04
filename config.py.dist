@@ -37,3 +37,9 @@ HTTP_BODY_CHECKS = [
 SSL_CERT_CHECKS = [
     ("www.electricmonk.nl", 443, 7),
 ]
+
+GIT_REPO_STATUS = [
+    "/opt/apps/monpy",
+    "/opt/apps/cve-tracker",
+    "/opt/apps/postfix2pushover",
+]

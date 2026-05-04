@@ -272,4 +272,19 @@ def ssl_expire():
                 ident=f"{host}:{port}"
             )
 
+@monpy.check(daily, daily)
+def git_repo_status():
+    for path in GIT_REPO_STATUS:
+        repo = collectors.git_repo(path)
+        if repo["ahead"] > 0:
+            monpy.alert(
+                f"Repo '{repo['path']}' has {repo['ahead']} uncommited changes",
+                ident=path
+            )
+        if repo["behind"] > 0:
+            monpy.alert(
+                f"Repo '{repo['path']}' is {repo['behind']} changes behind remote '{repo['remote_branch']}'",
+                ident=path
+            )
+
 monpy.run()
