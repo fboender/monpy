@@ -5,6 +5,7 @@ import datetime
 
 from monpy import *
 from config import *
+from alerters import Pushover
 
 
 minutely = 60
@@ -13,10 +14,8 @@ daily = 60 * 60 * 24
 weekly = 60 * 60 * 24 * 7
 
 
-monpy = MonPy(
-    PUSHOVER_USER_TOKEN,
-    PUSHOVER_APP_TOKEN
-)
+alerter = Pushover(PUSHOVER_USER_TOKEN, PUSHOVER_APP_TOKEN)
+monpy = MonPy(alerter=alerter)
 
 @monpy.check(minutely * 10, daily)
 def disk_space():
