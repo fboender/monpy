@@ -15,12 +15,20 @@ def git_cmd(path, *args):
     proc = subprocess.run(
         cmd,
         capture_output=True,
-        encoding="utf-8",
-        check=True
+        encoding="utf-8"
     )
+    if proc.returncode != 0:
+        logger.error("Error running command '%s': %s", " ".join(cmd), proc.stderr)
+        proc.check_returncode()
+
     return proc.stdout
 
 def git_repo(path, fetch=True):
+    """
+    Get on-disk repository information such as ahead, behind and changes. If
+    `fetch` is True (default), new changes will be be fetched from a remote
+    without a merge, rebase or fast forward.
+    """
     if fetch is True:
         logger.info("Fetching remote changes for repo '%s'", path)
         git_cmd(path, "fetch", "-q")
@@ -34,10 +42,30 @@ def git_repo(path, fetch=True):
     ahead_behind = git_cmd(path, "rev-list", "--left-right", "--count", f"{cur_branch}...{remote_branch}").strip()
     ahead, behind = [int(x) for x in ahead_behind.split()]
 
-    return {
+    repo_info = {
         "path": path,
         "cur_branch": cur_branch,
         "remote_branch": remote_branch,
         "ahead": ahead,
-        "behind": behind
+        "behind": behind,
+        "has_changes": False,
+        "modified": [],
+        "deleted": [],
+        "untracked": [],
     }
+
+    status = git_cmd(path, "diff-index", "HEAD", "--")
+    for line in status.splitlines():
+        old_mode, new_mode, head_blob, blob_index, status, changed_path = line.split(maxsplit=6)
+        repo_info["has_changes"] = True
+        if status == "M":
+            repo_info["modified"].append(changed_path)
+        elif status == "D":
+            repo_info["deleted"].append(changed_path)
+
+    untracked = git_cmd(path, "ls-files", "--others", "--exclude-standard").strip()
+    for line in untracked.splitlines():
+        repo_info["has_changes"] = True
+        repo_info["untracked"].append(line)
+
+    return repo_info
