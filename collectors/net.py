@@ -6,7 +6,7 @@ import socket
 import ssl
 import datetime
 
-logger = logging.getLogger(__package__)
+logger = logging.getLogger("monpy." + __name__)
 
 
 def tcp_connect(host, port, timeout=3, raise_exception=False):

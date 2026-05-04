@@ -2,7 +2,7 @@ import logging
 import os
 import subprocess
 
-logger = logging.getLogger(__package__)
+logger = logging.getLogger("monpy." + __name__)
 
 def git_cmd(path, *args):
     git_dir = os.path.join(path, ".git")

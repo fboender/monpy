@@ -8,7 +8,7 @@ class Pushover:
     def __init__(self, user_token, app_token):
         self.user_token = user_token
         self.app_token = app_token
-        self.logger = logging.getLogger("alerter_pushover")
+        self.logger = logging.getLogger("monpy."+__name__)
 
     def alert(self, msg):
         fqdn = socket.getfqdn()
