@@ -5,6 +5,8 @@ import logging
 import os
 import json
 import time
+import traceback
+import sys
 
 
 import collectors
@@ -35,6 +37,7 @@ class Check:
         self.alert_interval = alert_interval
         self.last_run = last_run
         self.force = force
+        self.exit_code = 0
 
         self.logger = logging.getLogger("check")
 
@@ -49,10 +52,13 @@ class Check:
         try:
             self.func()
         except Exception as err:
-            # FIXME alert
+            self.exit_code = 1
             self.logger.exception(err)
+            traceback.print_exc()
 
         self.last_run = int(time.time())
+
+        sys.exit(self.exit_code)
 
     def __repr__(self):
         return f"<{self.__class__.__name__} " \
