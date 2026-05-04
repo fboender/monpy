@@ -75,8 +75,11 @@ Various [collectors](collectors/) are provided:
   status (`/proc/<PID>/status`)
 * [`files`](collectors/files.py): File iteration and information. Useful for
   checking for files existing, their size, etc.
+* [`uptime`](collectors/uptime.py): System uptime information
 * [`nftables`](collectors/nftables.py): nftable firewall rules
 * [`docker`](collectors/docker.py): Docker container information
+* [`git`](collectors/git.py): Git repository information such as ahead /
+  behind / uncommitted changes, etc.
 
 # MonPy
 
@@ -91,3 +94,23 @@ checks, and provides various tools:
   between invocations) history of previous check values.
 * `MonPy.alert()`: Send alerts if `alert_interval` has been reached for the
   alert.
+
+# Alerters
+
+There are currently two alerters:
+
+* `StdErr`: Writes alerts to stderr
+* `Pushover`: Sends alerts via pushover
+
+Alerters can be configured globally when instantiating the MonPy instance:
+
+    alerter = Pushover(PUSHOVER_USER_TOKEN, PUSHOVER_APP_TOKEN)
+    monpy = MonPy(alerter=alerter)
+
+You can use a custom alerter when issuing an alert:
+
+    customer_alerter = StdErr()
+    monpy.alert(
+        "test alter",
+        alerter=customer_alerter
+    )
