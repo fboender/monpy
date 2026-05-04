@@ -5,9 +5,6 @@ import logging
 import os
 import json
 import time
-import socket
-import http.client
-import urllib
 
 
 import collectors
@@ -66,9 +63,8 @@ class Check:
 
 
 class MonPy:
-    def __init__(self, pushover_user_token, pushover_app_token, state_path=STATE_PATH):
-        self.pushover_user_token = pushover_user_token
-        self.pushover_app_token = pushover_app_token
+    def __init__(self, alerter=None, state_path=STATE_PATH):
+        self.alerter = alerter
         self.state_path = state_path
 
         self.checks = []
@@ -123,6 +119,9 @@ class MonPy:
         self.logger = logging.getLogger(__package__)
         self.logger.setLevel(loglevel)
         self.logger.addHandler(handler)
+
+        if self.alerter is None:
+            self.logger.error("No alerter configured. Alerts will not be sent")
 
     def _state_load(self):
         try:
@@ -216,7 +215,8 @@ class MonPy:
 
     def alert(self, msg, ident=None):
         """
-        Alert about a problem if alert_interval has been reached
+        Alert about a problem if alert_interval has been reached, using the
+        configured alerter (`self.alerter`).
         """
         full_ident = self._full_ident(ident)
         last_alert = self.state["alerts"].get(full_ident, 0)
@@ -236,26 +236,23 @@ class MonPy:
         if self.args.no_alert is True:
             self.logger.info(
                 "Not sending alert (--no-alert) for '%s': %s",
-                self.current_check,
+                self.current_check.name,
                 msg
             )
-        else:
-            self.logger.warning("Alert (%s): %s", self.current_check.name, msg)
+            return
 
-            fqdn = socket.getfqdn()
-            html_msg = f"MonPy @ <b>{fqdn}</b> alert: {msg}"
+        if self.alerter is None:
+            self.logger.error(
+                "Not sending alert (no alerter configured) for '%s': %s",
+                self.current_check.name,
+                msg
+            )
+            return
 
-            conn = http.client.HTTPSConnection("api.pushover.net:443")
-            conn.request("POST", "/1/messages.json",
-              urllib.parse.urlencode({
-                "token": self.pushover_app_token,
-                "user": self.pushover_user_token,
-                "html": 1,
-                "message": html_msg,
-              }), { "Content-type": "application/x-www-form-urlencoded" })
-            response = conn.getresponse()
-            self.logger.info(f"Sent alert to Pushover. Response code={response.status}")
-
+        self.logger.warning(
+            "Sending alert (%s): %s",
+            self.current_check.name,
+            msg
+        )
+        self.alerter.alert(msg)
         self.state["alerts"][full_ident] = now
-
-
