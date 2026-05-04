@@ -66,7 +66,7 @@ class Check:
 
 
 class MonPy:
-    def __init__(self, pushover_user_token, pushover_app_token):
+    def __init__(self, pushover_user_token, pushover_app_token, state_path=STATE_PATH):
         self.pushover_user_token = pushover_user_token
         self.pushover_app_token = pushover_app_token
 
