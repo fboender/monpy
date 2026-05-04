@@ -97,11 +97,11 @@ class MonPy:
                             action="store_true",
                             default=False,
                             help="Don't send alerts (see them using -vvv)")
-        parser.add_argument("--force-alert",
-                            dest="force_alert",
+        parser.add_argument("--no-suppress",
+                            dest="no_suppress",
                             action="store_true",
                             default=False,
-                            help="Force alerts to be generated")
+                            help="Ignore alert interval and do not suppress alerts")
         parser.add_argument('--log-file',
                             metavar='PATH',
                             dest='log_file',
@@ -245,7 +245,7 @@ class MonPy:
         now = int(time.time())
         elapsed = now - last_alert
 
-        if not self.args.force_alert and elapsed < self.current_check.alert_interval:
+        if not self.args.no_suppress and elapsed < self.current_check.alert_interval:
             self.logger.info(
                 "Supressing alert for '%s'. Alert interval (%ss) not reached (%ss elapsed). Alert: %s",
                 self.current_check.name,
