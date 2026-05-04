@@ -69,6 +69,7 @@ class MonPy:
     def __init__(self, pushover_user_token, pushover_app_token, state_path=STATE_PATH):
         self.pushover_user_token = pushover_user_token
         self.pushover_app_token = pushover_app_token
+        self.state_path = state_path
 
         self.checks = []
         self.state = self._state_load()
@@ -125,7 +126,7 @@ class MonPy:
 
     def _state_load(self):
         try:
-            with open(STATE_PATH, "r") as fh:
+            with open(self.state_path, "r") as fh:
                 state = json.load(fh)
                 # Provide backwards compatibility with state file
                 state.setdefault("checks", {})
@@ -140,9 +141,9 @@ class MonPy:
             }
 
     def _state_save(self):
-        state_dir = os.path.dirname(STATE_PATH)
+        state_dir = os.path.dirname(self.state_path)
         os.makedirs(state_dir, exist_ok=True)
-        with open(STATE_PATH, "w") as fh:
+        with open(self.state_path, "w") as fh:
             json.dump(self.state, fh)
 
     def _full_ident(self, ident):
