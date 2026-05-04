@@ -6,3 +6,4 @@ from .memory import memory
 from .files import file, files, egrep
 from .cpu import load
 from .net import tcp_connect, http, ssl_cert
+from .uptime import uptime
