@@ -38,7 +38,7 @@ class Check:
         self.last_run = last_run
         self.force = force
 
-        self.logger = logging.getLogger("check")
+        self.logger = logging.getLogger("monpy.check")
 
     def run(self):
         elapsed = int(time.time()) - self.last_run
@@ -132,7 +132,7 @@ class MonPy:
         fmt = '%(asctime)s %(levelname)8s %(name)s | %(message)s'
         formatter = logging.Formatter(fmt)
         handler.setFormatter(formatter)
-        self.logger = logging.getLogger(__package__)
+        self.logger = logging.getLogger("monpy")
         self.logger.setLevel(loglevel)
         self.logger.addHandler(handler)
 
