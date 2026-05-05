@@ -1,45 +1,85 @@
+# Pushover notification tokens
 PUSHOVER_USER_TOKEN = ""
 PUSHOVER_APP_TOKEN = ""
 
+# Minimal amount of required free disk space in %
 DISK_SPACE_FREE_PERC = 10
 
+# Minimal amount of available (free) memory in %
 LOW_MEM_AVAIL_PERC = 10
 
-PROC_HIGH_MEM_MB = 800
+# Processes using more than X amount of memory. Some processes can be ignored
+PROC_HIGH_MEM_MB = 500
+PROC_HIGH_MEM_IGNORE = [
+    "/usr/lib/firefox/firefox",
+    "/usr/bin/coolforkit-caps",
+    "/usr/bin/keepassxc",
+]
 
+# Max uptime in days. Periodic reboots are required to update the kernel
+UPTIME_DAYS = 31
+
+# Many containers are misconfigured and listen on 0.0.0.0, which bypasess the
+# linux firewall and makes the containers available on the internal/public
+# network
 ALLOW_DOCKER_WILDCARD_BINDS = [
     "3478/tcp",   # NextCloud Talk
     "3478/udp",   # NextCloud Talk
 ]
 
+# Mounting the docker socket into a container is highly dangerous as it can
+# lead to privilege escalations
 ALLOW_CONTAINER_DOCKER_SOCKET = [
 ]
 
+# Temp paths to scan for weird things. Malware often writes to temp paths
 TEMP_PATHS = [
     "/tmp",
     "/var/tmp",
     "/run/user"
 ]
 
+# Max (1 minute) load average of the last X minutes
 LOAD_MAX = 0.8
 LOAD_SAMPLES = 5
 
+# TCP connection tests
 HOST_PORTS_REACHABLE = [
-    ("some.example.com", 80),
-    ("some.example.com", 443),
-    ("192.168.1.1", 22),
+    ("sharky.electricmonk.nl", 80),
+    ("sharky.electricmonk.nl", 443),
+    ("192.168.1.1", 80),
 ]
 
+# Check HTTP responses for correct HTTP status and presence of text in the body
 HTTP_BODY_CHECKS = [
     ("https://www.electricmonk.nl/log/", 200, "Programmer, DevOpper, Open Source enthusiast"),
 ]
 
+# Check SSL certs for expiration in X days
 SSL_CERT_CHECKS = [
     ("www.electricmonk.nl", 443, 7),
+    ("cloud.electricmonk.nl", 443, 9),
 ]
 
+# Check that locally checked out git repos are not behind (missing updates)
 GIT_REPO_STATUS = [
     "/opt/apps/monpy",
     "/opt/apps/cve-tracker",
     "/opt/apps/postfix2pushover",
 ]
+
+# List of processes that are allowed to listen on ports on all interfaces
+# (0.0.0.0 / ::)
+LISTEN_PORT_PROC_ALLOWED = {
+    22: "/usr/sbin/sshd",
+    25: "/usr/lib/postfix/sbin/master",
+    80: "/usr/sbin/nginx",
+    139: "/usr/sbin/smbd",
+    443: "/usr/sbin/nginx",
+    445: "/usr/sbin/smbd",
+    2812: "/usr/bin/monit",
+    6881: "/usr/bin/transmission-daemon",
+    3478: "/usr/bin/docker-proxy",
+    8080: "/usr/bin/docker-proxy",
+    9091: "/usr/bin/transmission-daemon",
+}
