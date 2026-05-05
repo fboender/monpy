@@ -147,6 +147,40 @@ def nftables_default_policy():
             ident="ipv6"
         )
 
+@monpy.check(minutely * 5, hourly)
+def listening_ports():
+    """
+    Check all local portslistening external (all) interfaces against a
+    allowlist.
+    """
+    listen_ports = []
+
+    for port in collectors.netstat():
+        if port["state"] != "LISTEN":
+            continue
+        if port["local"][0] not in ["0.0.0.0", "::"]:
+            continue
+
+        listen_ports.append(port)
+
+    for listen_port in listen_ports:
+        port_nr = listen_port["local"][1]
+        exe_allowed = LISTEN_PORT_PROC_ALLOWED.get(port_nr, None)
+        allowed = False
+
+        listen_exes = []
+        for process in listen_port["processes"]:
+            listen_exes.append(process["exe"])
+            if process["exe"] == exe_allowed:
+                allowed = True
+                break
+
+        if allowed is False:
+            monpy.alert(
+                f"Listening port '{port_nr}' not whitelisted. Listening exes are: {listen_exes}",
+                ident=port_nr
+            )
+
 @monpy.check(hourly, daily)
 def docker_mount_socket():
     """
