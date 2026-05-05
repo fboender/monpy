@@ -217,7 +217,7 @@ def docker_mount_socket():
         container_name = container["Name"].lstrip("/")
         if container_name in ALLOW_CONTAINER_DOCKER_SOCKET:
             continue
-        for name, mount in container["MountPoints"].items():
+        for mount in container["Mounts"]:
             if mount["Source"] == "/var/run/docker.sock":
                 monpy.alert(
                     f"Container '{container['Name'].lstrip('/')}' mounts the docker socket in the container",
