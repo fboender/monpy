@@ -192,7 +192,7 @@ class MonPy:
                 force=self.args.force
             )
             self.checks.append(check)
-            self.logger.debug("Registered check '%s' with interval %s", name, check_interval)
+            self.logger.debug("Registered '%s'", check)
 
         return register_wrapper
 
