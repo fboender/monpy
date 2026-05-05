@@ -1,5 +1,6 @@
 import os
 import json
+import subprocess
 
 CONTAINER_DIR="/var/lib/docker/containers"
 
@@ -8,6 +9,11 @@ def docker_containers():
         return []
 
     for container_id in os.listdir(CONTAINER_DIR):
-        with open(os.path.join(CONTAINER_DIR, container_id, "config.v2.json"), "r") as fh:
-            container_info = json.load(fh)
-            yield container_info
+        res = subprocess.run(
+            ["docker", "inspect", container_id],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        container_info = json.loads(res.stdout)[0]
+        yield container_info
