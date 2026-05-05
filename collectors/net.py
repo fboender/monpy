@@ -6,8 +6,24 @@ import socket
 import ssl
 import datetime
 
+from .processes import process_info
+from tools import inode_pid_map
+
 logger = logging.getLogger("monpy." + __name__)
 
+TCP_STATES = {
+    "01": "ESTABLISHED",
+    "02": "SYN_SENT",
+    "03": "SYN_RECV",
+    "04": "FIN_WAIT1",
+    "05": "FIN_WAIT2",
+    "06": "TIME_WAIT",
+    "07": "CLOSE",
+    "08": "CLOSE_WAIT",
+    "09": "LAST_ACK",
+    "0A": "LISTEN",
+    "0B": "CLOSING",
+}
 
 def tcp_connect(host, port, timeout=3, raise_exception=False):
     """
@@ -106,3 +122,53 @@ def ssl_cert(host, port=443):
         info["expires_days"]
     )
     return info
+
+def _netstat_parse_ip(hex_ip, ipv6=False):
+    raw = bytes.fromhex(hex_ip)
+    if ipv6:
+        return socket.inet_ntop(socket.AF_INET6, raw)
+    else:
+        return socket.inet_ntoa(raw[::-1])
+
+def _netstat_parse_proc(path, inode_map, ipv6=False):
+    conns = []
+    with open(path) as f:
+        next(f)
+        for line in f:
+            parts = line.split()
+
+            l_ip, l_port = parts[1].split(":")
+            r_ip, r_port = parts[2].split(":")
+
+            inode = int(parts[9])
+            pids = inode_map.get(inode, [])
+            processes = []
+            for pid in pids:
+                processes.append(process_info(pid))
+
+            conn_info = {
+                "family": "ipv6" if ipv6 else "ipv4",
+                "local": (_netstat_parse_ip(l_ip, ipv6), int(l_port, 16)),
+                "remote": (_netstat_parse_ip(r_ip, ipv6), int(r_port, 16)),
+                "state": TCP_STATES.get(parts[3], parts[3]),
+                "tx_queue": int(parts[4].split(":")[0], 16),
+                "rx_queue": int(parts[4].split(":")[1], 16),
+                "timer_active": int(parts[5].split(":")[0], 16),
+                "timeout": int(parts[5].split(":")[1], 16),
+                "retransmits": int(parts[6], 16),
+                "uid": int(parts[7]),
+                "inode": inode,
+                "pids": pids,
+                "processes": processes
+            }
+
+
+            conns.append(conn_info)
+    return conns
+
+def netstat():
+    inode_map = inode_pid_map()
+    return (
+        _netstat_parse_proc("/proc/net/tcp", inode_map, ipv6=False) +
+        _netstat_parse_proc("/proc/net/tcp6", inode_map, ipv6=True)
+    )

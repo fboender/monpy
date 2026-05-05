@@ -58,3 +58,24 @@ def process_info(pid, extend=False):
                     process[key.lower()] = value
 
         return process
+
+def inode_pid_map():
+    inode_map = {}
+
+    for pid in filter(str.isdigit, os.listdir("/proc")):
+        fd_dir = Path("/proc") / pid / "fd"
+        if not fd_dir.exists():
+            continue
+        try:
+            for fd in fd_dir.iterdir():
+                try:
+                    target = os.readlink(fd)
+                    if target.startswith("socket:["):
+                        inode = int(target[8:-1])
+                        inode_map.setdefault(inode, []).append(int(pid))
+                except OSError:
+                    pass
+        except PermissionError:
+            continue
+    return inode_map
+
