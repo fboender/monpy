@@ -92,31 +92,6 @@ def high_uptime():
             f"Uptime is higher than {UPTIME_DAYS} days"
         )
 
-@monpy.check(hourly, daily)
-def docker_wildcard_bind():
-    """
-    Check for containers that bind ports on all interfaces (0.0.0.0), and are
-    not configured in ALLOW_DOCKER_WILDCARD_BINDS
-    """
-    for container in collectors.docker_containers():
-        ports = container["NetworkSettings"]["Ports"]
-        if ports is None:
-            continue
-
-        for port, host_ports in ports.items():
-            if port in ALLOW_DOCKER_WILDCARD_BINDS:
-                continue
-
-            if host_ports is None:
-                continue
-
-            for host_port in host_ports:
-                if host_port["HostIp"] == "0.0.0.0":
-                    monpy.alert(
-                        f"Container '{container['Name'].lstrip('/')}' exposes port {port} on all interfaces (0.0.0.0)",
-                        ident=f"{container['Name']}-{port}",
-                    )
-
 @monpy.check(minutely, hourly)
 def nftables_default_policy():
     """
@@ -181,12 +156,64 @@ def listening_ports():
                 ident=port_nr
             )
 
+@monpy.check(minutely * 5, hourly)
+def docker_unhealthy():
+    """
+    Check for unhealthy containers.
+    """
+    for container in collectors.docker_containers():
+        name = container['Name'].lstrip('/')
+        if "Health" not in container["State"]:
+            # No health check
+            continue
+
+        health_status = container["State"]["Health"]["Status"]
+
+        if health_status != "healthy":
+            monpy.alert(
+               f"Container '{name}' is not healthy ({health_status})",
+                ident=container["Id"]
+            )
+
+@monpy.check(hourly, daily)
+def docker_wildcard_bind():
+    """
+    Check for containers that bind ports on all interfaces (0.0.0.0), and are
+    not configured in ALLOW_DOCKER_WILDCARD_BINDS.
+    """
+    for container in collectors.docker_containers():
+        if container["State"]["Running"] is not True:
+            # We don't care of the contaiener isn't running
+            continue
+
+        ports = container["NetworkSettings"]["Ports"]
+        if ports is None:
+            continue
+
+        for port, host_ports in ports.items():
+            if port in ALLOW_DOCKER_WILDCARD_BINDS:
+                continue
+
+            if host_ports is None:
+                continue
+
+            for host_port in host_ports:
+                if host_port["HostIp"] == "0.0.0.0":
+                    monpy.alert(
+                        f"Container '{container['Name'].lstrip('/')}' exposes port {port} on all interfaces (0.0.0.0)",
+                        ident=f"{container['Name']}-{port}",
+                    )
+
 @monpy.check(hourly, daily)
 def docker_mount_socket():
     """
-    Check if a docker container mounts the docker socket into it
+    Check if a docker container mounts the docker socket into it.
     """
     for container in collectors.docker_containers():
+        if container["State"]["Running"] is not True:
+            # We don't care of the contaiener isn't running
+            continue
+
         container_name = container["Name"].lstrip("/")
         if container_name in ALLOW_CONTAINER_DOCKER_SOCKET:
             continue
@@ -200,7 +227,8 @@ def docker_mount_socket():
 @monpy.check(hourly, daily)
 def mail():
     """
-    Check if there is local mail
+    Check if there is local mail. This happens if the mail server cannot
+    deliver mail.
     """
     for file in collectors.files("/var/spool/mail"):
         if file["size"] > 0:
@@ -216,6 +244,7 @@ def cron_mailto():
     """
     files = []
     files.append(collectors.file("/etc/crontab"))
+    # FIXME
     #files.extend(collectors.files("/etc/cron.d"))
     files.extend(collectors.files("/var/spool/cron/crontabs"))
 
@@ -263,6 +292,9 @@ def executables_in_tmp():
 
 @monpy.check(minutely * 5, hourly)
 def host_ports_reachable():
+    """
+    Check configured host/ports to see if they are reachable
+    """
     for host_port in HOST_PORTS_REACHABLE:
         try:
             hostname = host_port[0]
