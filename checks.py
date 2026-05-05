@@ -38,6 +38,9 @@ def disk_space():
 
 @monpy.check(minutely, hourly)
 def cpu_usage():
+    """
+    Check CPU usage
+    """
     load = collectors.load()
     history = monpy.history(load["1min"], LOAD_SAMPLES)
     avg = sum(history) / len(history)
@@ -274,6 +277,9 @@ def ssl_expire():
 
 @monpy.check(daily, daily)
 def git_repo_status():
+    """
+    Check for out-of-date git repositories
+    """
     for path in GIT_REPO_STATUS:
         repo = collectors.git_repo(path)
         if repo["ahead"] > 0:
