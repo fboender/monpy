@@ -11,18 +11,19 @@ See [`checks.py`](checks.py) for examples.
 # Usage
 
     $ ./checks.py --help
-    usage: monpy [-h] [--version] [-v] [-f] [--no-alert] [--force-alert] [CHECK]
+    usage: monpy [-h] [--version] [-v] [-f] [--no-alert] [--no-suppress] [--log-file PATH] [CHECK]
 
     positional arguments:
-      CHECK          Check to run
+      CHECK            Check to run. If not given, runs all checks
 
     options:
-      -h, --help     show this help message and exit
-      --version      show program's version number and exit
-      -v, --verbose  Verbosity. May be specified multiple times (-vvv)
-      -f, --force    Force checks to run
-      --no-alert     Don't send alerts (see them using -vvv)
-      --force-alert  Force alerts to be generated
+      -h, --help       show this help message and exit
+      --version        show program's version number and exit
+      -v, --verbose    Verbosity. May be specified multiple times (-vvv)
+      -f, --force      Force checks to run
+      --no-alert       Don't send alerts (see them using -vvv)
+      --no-suppress    Ignore alert interval and do not suppress alerts
+      --log-file PATH  Log to file. If not given, log to stderr
 
 cronjob:
 
