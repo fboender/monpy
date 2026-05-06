@@ -75,6 +75,10 @@ class MonPy:
 
         self.checks = []
         self.state = self._state_load()
+
+        # Reference to currently running check (self.run()), so that the check
+        # can call `monpy.history()` and `monpy.alert()` and we know which
+        # check is calling it.
         self.current_check = None
 
         parser = argparse.ArgumentParser(prog=__METADATA__["name"],
@@ -199,7 +203,8 @@ class MonPy:
     def history(self, cur_value, hist_size, ident=None):
         """
         Keep a history of last values for checks. Can be used to calculate, for
-        instance, an average over a longer period of time.
+        instance, an average over a longer period of time. Optionally provide
+        `ident` to have multiple different histories in the same check.
         """
         full_ident = self._full_ident(ident)
 
@@ -239,6 +244,12 @@ class MonPy:
         """
         Alert about a problem if alert_interval has been reached, using the
         configured alerter (`self.alerter`).
+
+        You can have different alerts within the same check by providing an
+        `ident`.
+
+        If `alerter` is specified, use that alerter instead of the globally
+        configured one.
         """
         full_ident = self._full_ident(ident)
         last_alert = self.state["alerts"].get(full_ident, 0)
