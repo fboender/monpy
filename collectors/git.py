@@ -33,7 +33,7 @@ import subprocess
 
 logger = logging.getLogger("monpy." + __name__)
 
-def git_cmd(path, *args):
+def _git_cmd(path, *args):
     git_dir = os.path.join(path, ".git")
     cmd = [
         "git",
@@ -60,15 +60,15 @@ def git_repo(path, fetch=True):
     """
     if fetch is True:
         logger.info("Fetching remote changes for repo '%s'", path)
-        git_cmd(path, "fetch", "-q")
+        _git_cmd(path, "fetch", "-q")
 
         # Refresh the index, or we might get wrong results.
         logger.debug("Updating git repo index")
-        git_cmd(path, "update-index", "-q", "--refresh")
+        _git_cmd(path, "update-index", "-q", "--refresh")
 
-    cur_branch = git_cmd(path, "rev-parse", "--abbrev-ref", "HEAD").strip()
-    remote_branch = git_cmd(path, "rev-parse", "--abbrev-ref", "--symbolic-full-name", f"{cur_branch}@{{u}}").strip()
-    ahead_behind = git_cmd(path, "rev-list", "--left-right", "--count", f"{cur_branch}...{remote_branch}").strip()
+    cur_branch = _git_cmd(path, "rev-parse", "--abbrev-ref", "HEAD").strip()
+    remote_branch = _git_cmd(path, "rev-parse", "--abbrev-ref", "--symbolic-full-name", f"{cur_branch}@{{u}}").strip()
+    ahead_behind = _git_cmd(path, "rev-list", "--left-right", "--count", f"{cur_branch}...{remote_branch}").strip()
     ahead, behind = [int(x) for x in ahead_behind.split()]
 
     repo_info = {
@@ -83,7 +83,7 @@ def git_repo(path, fetch=True):
         "untracked": [],
     }
 
-    status = git_cmd(path, "diff-index", "HEAD", "--")
+    status = _git_cmd(path, "diff-index", "HEAD", "--")
     for line in status.splitlines():
         old_mode, new_mode, head_blob, blob_index, status, changed_path = line.split(maxsplit=6)
         repo_info["has_changes"] = True
@@ -92,7 +92,7 @@ def git_repo(path, fetch=True):
         elif status == "D":
             repo_info["deleted"].append(changed_path)
 
-    untracked = git_cmd(path, "ls-files", "--others", "--exclude-standard").strip()
+    untracked = _git_cmd(path, "ls-files", "--others", "--exclude-standard").strip()
     for line in untracked.splitlines():
         repo_info["has_changes"] = True
         repo_info["untracked"].append(line)

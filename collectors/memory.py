@@ -1,6 +1,6 @@
 import os
 
-def kb_to_bytes(s):
+def _kb_to_bytes(s):
     return int(s[:-3]) * 1024
 
 def memory():
@@ -9,7 +9,7 @@ def memory():
         for line in fh:
             key, value = line.strip().split(":", 1)
             if value.endswith("kB"):
-                meminfo[key] = kb_to_bytes(value)
+                meminfo[key] = _kb_to_bytes(value)
             elif value.isdigit():
                 meminfo[key] = int(value)
             else:
