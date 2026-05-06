@@ -30,18 +30,21 @@ class Check:
     This is not a class to derive checks from. Use the `MonPy.check` decorator
     for that.
     """
-    def __init__(self, name, func, check_interval, alert_interval, last_run, force):
+    def __init__(self, name, func, check_interval, alert_interval, force, alerter, no_alert, no_suppress, state):
         self.name = name
         self.func = func
         self.check_interval = check_interval
         self.alert_interval = alert_interval
-        self.last_run = last_run
-        self.force = force
+        self.force = force              # Force run
+        self.alerter = alerter          # Alerter class
+        self.no_alert = no_alert        # Do not emmit alerts (--no-alert)
+        self.no_suppress = no_suppress  # Ignore alert timeout
+        self.state = state
 
         self.logger = logging.getLogger("monpy.check")
 
     def run(self):
-        elapsed = int(time.time()) - self.last_run
+        elapsed = int(time.time()) - self.state["last_run"]
 
         if self.force is False and elapsed < self.check_interval:
             self.logger.debug("Not running check '%s', interval (%s) not reached (%s)", self.name, self.check_interval, elapsed)
@@ -56,9 +59,78 @@ class Check:
             self.logger.exception(err)
             traceback.print_exc()
 
-        self.last_run = int(time.time())
+        self.state["last_run"] = int(time.time())
 
         return return_value
+
+    def history(self, cur_value, hist_size, ident=None):
+        if ident is None:
+            ident = "_"
+
+        history = self.state["history"].setdefault(ident, [])
+
+        # Record current value and prune old ones
+        history.append(cur_value)
+        self.state["history"][ident] = history[-hist_size:]
+
+        return history
+
+    def alert(self, msg, ident=None, alerter=None):
+        """
+        Alert about a problem if alert_interval has been reached, using the
+        configured alerter (`self.alerter`).
+
+        You can have different alerts within the same check by providing an
+        `ident`.
+
+        If `alerter` is specified, use that alerter instead of `self.alerter`.
+        """
+        # FIXME: include ident in logging message
+        if self.no_alert is True:
+            self.logger.info(
+                "Not sending alert (--no-alert) for '%s': %s",
+                self.name,
+                msg
+            )
+            return
+
+        if ident is None:
+            ident = "_"
+
+        if alerter is None:
+            alerter = self.alerter
+
+        # Check when last alert was sent
+        last_alert = self.state["alerts"].get(ident, 0)
+        now = int(time.time())
+        elapsed = now - last_alert
+
+        if not self.no_suppress and elapsed < self.alert_interval:
+            self.logger.info(
+                "Supressing alert for '%s'. Alert interval (%ss) not reached (%ss elapsed). Alert: %s",
+                self.name,
+                self.alert_interval,
+                elapsed,
+                msg
+            )
+            return
+
+        if alerter is None:
+            self.logger.error(
+                "Not sending alert (no alerter configured) for '%s': %s",
+                self.name,
+                msg
+            )
+            return
+
+        self.logger.warning(
+            "Sending alert (%s): %s",
+            self.name,
+            msg
+        )
+        alerter.alert(msg)
+
+        self.state["alerts"][ident] = now
 
     def __repr__(self):
         return f"<{self.__class__.__name__} " \
@@ -184,8 +256,11 @@ class MonPy:
                 func,
                 check_interval,
                 alert_interval,
-                state["last_run"],
-                force=self.args.force
+                self.args.force,
+                self.alerter,
+                self.args.no_alert,
+                self.args.no_suppress,
+                state
             )
             self.checks.append(check)
             self.logger.debug("Registered '%s'", check)
@@ -194,25 +269,9 @@ class MonPy:
 
     def history(self, cur_value, hist_size, ident=None):
         """
-        Keep a history of last values for checks. Can be used to calculate, for
-        instance, an average over a longer period of time. Optionally provide
-        `ident` to have multiple different histories in the same check.
+        Wrapper around Check.history for currently running check.
         """
-        if ident is None:
-            ident = "_"
-
-        current_check = self.current_check
-        check_state = self.state["checks"][current_check.name]
-        history = check_state["history"].setdefault(ident, [])
-
-        # Record current value and prune old ones
-        history.append(cur_value)
-        history = history[-hist_size:]
-
-        # Save history state
-        check_state["history"][ident] = history
-
-        return history
+        return self.current_check.history(cur_value, hist_size, ident=ident)
 
     def run(self):
         """
@@ -233,67 +292,14 @@ class MonPy:
             self.current_check = None
 
             # Save check state
-            state = self.state["checks"][check.name]
-            state["last_run"] = check.last_run
+            #state = self.state["checks"][check.name]
+            #state["last_run"] = check.last_run
 
         self._state_save()
         sys.exit(exit_code)
 
     def alert(self, msg, ident=None, alerter=None):
         """
-        Alert about a problem if alert_interval has been reached, using the
-        configured alerter (`self.alerter`).
-
-        You can have different alerts within the same check by providing an
-        `ident`.
-
-        If `alerter` is specified, use that alerter instead of the globally
-        configured one.
+        Wrapper around Check.alert for currently running check.
         """
-        if ident is None:
-            ident = "_"
-
-        if alerter is None:
-            alerter = self.alerter
-
-        current_check = self.current_check
-        check_state = self.state["checks"][current_check.name]
-        last_alert = check_state["alerts"].get(ident, 0)
-        now = int(time.time())
-        elapsed = now - last_alert
-
-        if not self.args.no_suppress and elapsed < self.current_check.alert_interval:
-            self.logger.info(
-                "Supressing alert for '%s'. Alert interval (%ss) not reached (%ss elapsed). Alert: %s",
-                self.current_check.name,
-                self.current_check.alert_interval,
-                elapsed,
-                msg
-            )
-            return
-
-        if self.args.no_alert is True:
-            self.logger.info(
-                "Not sending alert (--no-alert) for '%s': %s",
-                self.current_check.name,
-                msg
-            )
-            return
-
-        if alerter is None:
-            self.logger.error(
-                "Not sending alert (no alerter configured) for '%s': %s",
-                self.current_check.name,
-                msg
-            )
-            return
-
-        self.logger.warning(
-            "Sending alert (%s): %s",
-            self.current_check.name,
-            msg
-        )
-        alerter.alert(msg)
-
-        # Save last alert timestamp
-        check_state["alerts"][ident] = now
+        self.current_check.alert(msg, ident, alerter)
