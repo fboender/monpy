@@ -218,7 +218,7 @@ class MonPy:
             with open(self.state_path, "r") as fh:
                 state = json.load(fh)
                 if "history" in state:
-                    raise RuntimeError("Old state.json format detected. Delete it first")
+                    raise RuntimeError(f"Old '{self.state_path}' format detected. Delete it first")
                 return state
         except FileNotFoundError:
             return {
