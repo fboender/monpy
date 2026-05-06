@@ -43,11 +43,16 @@ def file(path):
         "dir": fdir,
         "path": path,
         "type": ftype,
+        "inode": fstat.st_ino,
         "size": fstat.st_size,
+        "atime": fstat.st_atime,
+        "mtime": fstat.st_mtime,
+        "ctime": fstat.st_ctime,
         "mode": fstat.st_mode,
         "uid": fstat.st_uid,
         "gid": fstat.st_gid,
         "device": fstat.st_dev,
+        "nlink": fstat.st_nlink
     }
 
 
@@ -193,3 +198,69 @@ def egrep(path, regex):
                                               0,
                                               access=mmap.ACCESS_READ))
 
+def _find_inode_in_dir(inode, dir):
+    for file_info in files(dir, depth=1):
+        if file_info["inode"] == inode:
+            return file_info["path"]
+
+def log_watch(path, monpy, from_top=False):
+    """
+    Yield unseen lines in `path`. If `path` has been rotated, an attempt will
+    be made to find the file it was rotated to, and the unseen lines will be
+    yielded.
+
+    `monpy` is a reference to the `MonPy()` instance, so we can track the
+    state of the file (lines seen).
+
+    If this is the first time we see a file, and `from_top` is True, than the
+    entire file is yielded. Otherwise (the default), we start from the end of
+    the file.
+    """
+    file_info = file(path)
+
+    state = monpy.current_check.state
+
+    # Create "log_watch" key if not present
+    if not "log_watch" in state:
+        state["log_watch"] = {}
+
+    # Get current log state for path, or set if not set
+    if path in state["log_watch"]:
+        log_state = state["log_watch"][path]
+    else:
+        # Log file never seen.
+        log_state = state["log_watch"][path] = {
+            "inode": file_info["inode"]
+        }
+        if from_top is True:
+            log_state["pos"] = 0
+        else:
+            # Start at end of file
+            log_state["pos"] = file_info["size"]
+
+    # Check if the inode in the current log state is the same as on disk. If
+    # not, the file has been rotated or deleted
+    if log_state["inode"] is not None and log_state["inode"] != file_info["inode"]:
+        # Log file rotated. Find path to inode in log dir for rotated file
+        prev_log_path = _find_inode_in_dir(log_state["inode"], os.path.dirname(path))
+        if prev_log_path is not None:
+            # Tail the rest of the rotated log file
+            with open(prev_log_path, "r") as fh:
+                fh.seek(log_state["pos"])
+                for line in fh.readlines():
+                    yield line
+
+        # Reset log pos so we start yielding from the top of the new log file
+        log_state["pos"] = 0
+
+    # Register inode of current log file
+    log_state["inode"] = file_info["inode"]
+
+    # Tail log file
+    with open(path, "r") as fh:
+        fh.seek(log_state["pos"])
+        for line in fh.readlines():
+            yield line
+
+        # Register last position in log file in state
+        log_state["pos"] = fh.tell()
