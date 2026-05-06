@@ -289,10 +289,6 @@ class MonPy:
                 exit_code = 1
             self.current_check = None
 
-            # Save check state
-            #state = self.state["checks"][check.name]
-            #state["last_run"] = check.last_run
-
         self._state_save()
         sys.exit(exit_code)
 
