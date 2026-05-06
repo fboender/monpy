@@ -147,16 +147,12 @@ class MonPy:
         try:
             with open(self.state_path, "r") as fh:
                 state = json.load(fh)
-                # Provide backwards compatibility with state file
-                state.setdefault("checks", {})
-                state.setdefault("alerts", {})
-                state.setdefault("history", {})
+                if "history" in state:
+                    raise RuntimeError("Old state.json format detected. Delete it first")
                 return state
         except FileNotFoundError:
             return {
                 "checks": {},
-                "alerts": {},
-                "history": {}
             }
 
     def _state_save(self):
@@ -164,12 +160,6 @@ class MonPy:
         os.makedirs(state_dir, exist_ok=True)
         with open(self.state_path, "w") as fh:
             json.dump(self.state, fh)
-
-    def _full_ident(self, ident):
-        if ident is not None:
-            return f"{self.current_check.name}__{ident}"
-        else:
-            return f"{self.current_check.name}"
 
     def check(self, check_interval, alert_interval=0):
         """
@@ -181,10 +171,12 @@ class MonPy:
         """
         def register_wrapper(func):
             name = func.__name__
-            check_state = self.state["checks"].setdefault(
+            state = self.state["checks"].setdefault(
                 name,
                 {
                     "last_run": 0,
+                    "alerts": {},
+                    "history": {},
                 }
             )
             check = Check(
@@ -192,7 +184,7 @@ class MonPy:
                 func,
                 check_interval,
                 alert_interval,
-                check_state["last_run"],
+                state["last_run"],
                 force=self.args.force
             )
             self.checks.append(check)
@@ -206,12 +198,19 @@ class MonPy:
         instance, an average over a longer period of time. Optionally provide
         `ident` to have multiple different histories in the same check.
         """
-        full_ident = self._full_ident(ident)
+        if ident is None:
+            ident = "_"
 
-        history = self.state["history"].setdefault(full_ident, [])
+        current_check = self.current_check
+        check_state = self.state["checks"][current_check.name]
+        history = check_state["history"].setdefault(ident, [])
+
+        # Record current value and prune old ones
         history.append(cur_value)
         history = history[-hist_size:]
-        self.state["history"][full_ident] = history
+
+        # Save history state
+        check_state["history"][ident] = history
 
         return history
 
@@ -234,8 +233,8 @@ class MonPy:
             self.current_check = None
 
             # Save check state
-            check_state = self.state["checks"][check.name]
-            check_state["last_run"] = check.last_run
+            state = self.state["checks"][check.name]
+            state["last_run"] = check.last_run
 
         self._state_save()
         sys.exit(exit_code)
@@ -251,8 +250,15 @@ class MonPy:
         If `alerter` is specified, use that alerter instead of the globally
         configured one.
         """
-        full_ident = self._full_ident(ident)
-        last_alert = self.state["alerts"].get(full_ident, 0)
+        if ident is None:
+            ident = "_"
+
+        if alerter is None:
+            alerter = self.alerter
+
+        current_check = self.current_check
+        check_state = self.state["checks"][current_check.name]
+        last_alert = check_state["alerts"].get(ident, 0)
         now = int(time.time())
         elapsed = now - last_alert
 
@@ -274,7 +280,7 @@ class MonPy:
             )
             return
 
-        if self.alerter is None and alerter is None:
+        if alerter is None:
             self.logger.error(
                 "Not sending alert (no alerter configured) for '%s': %s",
                 self.current_check.name,
@@ -287,11 +293,7 @@ class MonPy:
             self.current_check.name,
             msg
         )
-        if alerter is not None:
-            # Use alerter provided as argument
-            alerter.alert(msg)
-        else:
-            # Use default alerter
-            self.alerter.alert(msg)
+        alerter.alert(msg)
 
-        self.state["alerts"][full_ident] = now
+        # Save last alert timestamp
+        check_state["alerts"][ident] = now
