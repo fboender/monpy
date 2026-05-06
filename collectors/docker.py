@@ -5,9 +5,6 @@ import subprocess
 CONTAINER_DIR="/var/lib/docker/containers"
 
 def docker_containers():
-    if not os.path.isdir(CONTAINER_DIR):
-        return []
-
     for container_id in os.listdir(CONTAINER_DIR):
         res = subprocess.run(
             ["docker", "inspect", container_id],
