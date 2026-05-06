@@ -1,12 +1,13 @@
-Simple, pure Python monitoring tool. Checks are written in Python, making it
-extremely powerful while keeping it simple (if you know Python).
+Monitoring tool where you write checks in Python instead of some declarative
+markup language. Simple, fast and powerful. No external libraries required,
+only a Python installation.
 
-MonPy provides tooling to make writing checks easy. Since checks are written
-in Python, you can do anything from alerting to taking actions such as killing
-processes, etc. Various useful [collectors](#collectors) are provided
+MonPy provides tooling to easily write checks, keep state and history and
+generate alerts. Various useful data [collectors](#collectors) are provided
 out-of-the-box.
 
-See [`checks.py`](checks.py) for examples.
+See [`checks.py`](checks.py) for examples of what's possible and how to write
+checks.
 
 # Usage
 
@@ -54,7 +55,7 @@ total of 5 minutes) is higher than 0.9. If so, it sends an alert.
     @monpy.check(60, 60*60)
     def cpu_usage():
         load = collectors.load()
-        history = monpy.history(load["1min"], LOAD_SAMPLES)
+        history = monpy.history(load["1min"], 5)
         avg = sum(history) / len(history)
         if avg > 0.9:
             monpy.alert(

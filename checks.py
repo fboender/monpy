@@ -310,6 +310,10 @@ def host_ports_reachable():
 if SCAN_DEVICES_NETWORK is not False:
     @monpy.check(hourly, hourly)
     def network_devices():
+        """
+        Scan for new devices (MAC addresses) on a network. This check keeps
+        custom state in between invocations.
+        """
         device_status = monpy.current_check.state.setdefault("devices", [])
         for device in collectors.devices(SCAN_DEVICES_NETWORK):
             if device["mac"] is None:
