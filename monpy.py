@@ -145,9 +145,6 @@ class MonPy:
         self.alerter = alerter
         self.state_path = state_path
 
-        self.checks = []
-        self.state = self._state_load()
-
         # Reference to currently running check (self.run()), so that the check
         # can call `monpy.history()` and `monpy.alert()` and we know which
         # check is calling it.
@@ -184,7 +181,6 @@ class MonPy:
                             type=str,
                             default=None,
                             help='Log to file. If not given, log to stderr')
-
         parser.add_argument("check",
                             metavar="CHECK",
                             type=str,
@@ -192,6 +188,8 @@ class MonPy:
                             help="Check to run. If not given, runs all checks")
 
         self.args = parser.parse_args()
+        self.checks = []
+        self.state = self._state_load()
 
         # Configure application logging
         loglevel = logging.CRITICAL - ((self.args.verbose + 1) * 10)
