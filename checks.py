@@ -307,6 +307,21 @@ def host_ports_reachable():
                 ident=f"{hostname}:{port}"
             )
 
+if SCAN_DEVICES_NETWORK is not False:
+    @monpy.check(hourly, hourly)
+    def network_devices():
+        device_status = monpy.current_check.state.setdefault("devices", [])
+        for device in collectors.devices(SCAN_DEVICES_NETWORK):
+            if device["mac"] is None:
+                continue
+
+            if device["mac"] not in device_status:
+                device_status.append(device["mac"])
+                monpy.alert(
+                    f"New device found on network '{SCAN_DEVICES_NETWORK}': {device['ip']} (hostname={device['hostname']}, vendor={device['vendor']})",
+                    device["mac"]
+                )
+
 @monpy.check(minutely * 15, hourly)
 def http_body():
     """
