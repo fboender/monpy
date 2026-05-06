@@ -5,6 +5,8 @@ import base64
 import socket
 import ssl
 import datetime
+import subprocess
+import xml.etree.ElementTree as ET
 
 from .processes import process_info
 from tools import inode_pid_map
@@ -172,3 +174,58 @@ def netstat():
         _netstat_parse_proc("/proc/net/tcp", inode_map, ipv6=False) +
         _netstat_parse_proc("/proc/net/tcp6", inode_map, ipv6=True)
     )
+
+def devices(network):
+    """
+    Discover hosts on network using nmap
+
+    Yields:
+
+        {
+            "status": "up",
+            "ip": "192.168.1.6",
+            "mac": "68:7F:74:06:1B:CE",
+            "hostname": "router",
+            "vendor": "Cisco-Linksys"
+        }
+    """
+    cmd = [
+        "nmap",
+        "-oX", "-",
+        "-sn", network
+    ]
+    logger.debug("Discovering hosts using nmap: %s", " ".join(cmd))
+    proc = subprocess.run(
+        cmd,
+        capture_output=True,
+        encoding="utf-8"
+    )
+    if proc.returncode != 0:
+        logger.error("Error running command '%s': %s", " ".join(cmd), proc.stderr)
+        proc.check_returncode()
+
+    root = ET.fromstring(proc.stdout)
+
+    for host in root.findall("host"):
+        host_info = {
+            "status": None,
+            "ip": None,
+            "mac": None,
+            "hostname": None,
+            "vendor": None,
+        }
+
+        host_info["status"] = host.find("status").get("state")
+
+        for addr in host.findall("address"):
+            if addr.get("addrtype") == "ipv4":
+                host_info["ip"] = addr.get("addr")
+            elif addr.get("addrtype") == "mac":
+                host_info["mac"] = addr.get("addr")
+                host_info["vendor"] = addr.get("vendor")
+
+        hostnames = host.find("hostnames").findall("hostname")
+        if hostnames:
+            host_info["hostname"] = hostnames[0].get("name")
+
+        yield host_info

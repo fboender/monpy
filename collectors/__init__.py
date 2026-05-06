@@ -5,6 +5,6 @@ from .processes import processes
 from .memory import memory
 from .files import file, files, egrep, log_watch
 from .cpu import load
-from .net import tcp_connect, http, ssl_cert, netstat
+from .net import tcp_connect, http, ssl_cert, netstat, devices
 from .uptime import uptime
 from .git import git_repo

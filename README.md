@@ -70,18 +70,19 @@ Various [collectors](collectors/) are provided:
   available) including in percentages
 * [`mounts`](collectors/mounts.py): Mount point information, including free / used
   disk space
-* [`net`](collectors/net.py): TCP connections, HTTP calls and SSL certificate
-  information.
+* [`net`](collectors/net.py): TCP connections, HTTP calls, SSL certificate
+  information and network scanning (devices)
 * [`processes`](collectors/processes.py): Running process information, including
   the PID, path to the process, current working dir, environment and process
   status (`/proc/<PID>/status`)
 * [`files`](collectors/files.py): File iteration and information. Useful for
-  checking for files existing, their size, etc.
+  checking for files existing, their size, etc. Also included `log_watch` for
+  watching log files (included rotation)
 * [`uptime`](collectors/uptime.py): System uptime information
 * [`nftables`](collectors/nftables.py): nftable firewall rules
 * [`docker`](collectors/docker.py): Docker container information
 * [`git`](collectors/git.py): Git repository information such as ahead /
-  behind / uncommitted changes, etc.
+  behind / uncommitted changes, etc
 
 # MonPy
 
