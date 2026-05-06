@@ -265,12 +265,6 @@ class MonPy:
 
         return register_wrapper
 
-    def history(self, cur_value, hist_size, ident=None):
-        """
-        Wrapper around Check.history for currently running check.
-        """
-        return self.current_check.history(cur_value, hist_size, ident=ident)
-
     def run(self):
         """
         Run all registered monitoring checks
@@ -292,6 +286,12 @@ class MonPy:
 
         self._state_save()
         sys.exit(exit_code)
+
+    def history(self, cur_value, hist_size, ident=None):
+        """
+        Wrapper around Check.history for currently running check.
+        """
+        return self.current_check.history(cur_value, hist_size, ident=ident)
 
     def alert(self, msg, ident=None, alerter=None):
         """
