@@ -282,6 +282,7 @@ class MonPy:
                 self.logger.debug("Not running check '%s' due to argument '%s'", check.name, self.args.check)
                 continue
 
+            # Register current check so the check can call `monpy.history()`, etc.
             self.current_check = check
             result = check.run()
             if result is not None:
