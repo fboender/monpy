@@ -161,6 +161,9 @@ def docker_unhealthy():
     """
     Check for unhealthy containers.
     """
+    if not os.path.exists("/var/lib/docker/"):
+        return
+
     for container in collectors.docker_containers():
         name = container['Name'].lstrip('/')
         if "Health" not in container["State"]:
@@ -181,6 +184,9 @@ def docker_wildcard_bind():
     Check for containers that bind ports on all interfaces (0.0.0.0), and are
     not configured in ALLOW_DOCKER_WILDCARD_BINDS.
     """
+    if not os.path.exists("/var/lib/docker/"):
+        return
+
     for container in collectors.docker_containers():
         if container["State"]["Running"] is not True:
             # We don't care of the contaiener isn't running
@@ -209,6 +215,9 @@ def docker_mount_socket():
     """
     Check if a docker container mounts the docker socket into it.
     """
+    if not os.path.exists("/var/lib/docker/"):
+        return
+
     for container in collectors.docker_containers():
         if container["State"]["Running"] is not True:
             # We don't care of the contaiener isn't running
