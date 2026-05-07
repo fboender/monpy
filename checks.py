@@ -63,6 +63,18 @@ def low_mem():
         )
 
 @monpy.check(minutely, hourly)
+def temperatures():
+    """
+    Check for high temperatures
+    """
+    for t_info in collectors.temperatures():
+        if t_info["temperature"] > MAX_TEMPERATURE:
+            monpy.alert(
+                f"Temperature for sensor '{t_info['name']}' higher than {MAX_TEMPERATURE}°C ({t_info['temperature']}°C, device: {t_info['device']}).",
+                ident=t_info['name']
+            )
+
+@monpy.check(minutely, hourly)
 def proc_with_high_mem():
     """
     Check for processes using a lot of memory

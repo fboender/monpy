@@ -8,6 +8,9 @@ DISK_SPACE_FREE_PERC = 10
 # Minimal amount of available (free) memory in %
 LOW_MEM_AVAIL_PERC = 10
 
+# Maximum temperature of any sensor
+MAX_TEMPERATURE = 55
+
 # Processes using more than X amount of memory. Some processes can be ignored
 PROC_HIGH_MEM_MB = 500
 PROC_HIGH_MEM_IGNORE = [
