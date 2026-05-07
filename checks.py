@@ -196,7 +196,7 @@ if os.path.exists("/var/lib/docker/"):
         """
         for container in collectors.docker_containers():
             if container["State"]["Running"] is not True:
-                # We don't care of the contaiener isn't running
+                # We don't care of the container isn't running
                 continue
 
             ports = container["NetworkSettings"]["Ports"]
