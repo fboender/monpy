@@ -22,16 +22,20 @@ def file(path):
     Return file information on `path`. Example output:
 
         {
-            'filename': 'passwd',
-            'dir': '/etc/',
-            'path': '/etc/passwd',
-            'type': 'file',
-            'size': 2790,
-            'mode': 33188,
-            'uid': 0,
-            'gid': 0,
-            'device': 64769
-        }
+            "filename": "passwd",
+            "dir": "/etc",
+            "path": "/etc/passwd",
+            "type": "file",
+            "mode": 33188,
+            "uid": 0,
+            "gid": 0,
+            "size": 3137,
+            "inode": 12060272,
+            "atime": 1778070601.4110885,
+            "mtime": 1770810161.1919982,
+            "ctime": 1770810161.1940932,
+            "device": 64512,
+            "nlink": 1
     """
     fname = os.path.basename(path)
     fdir = os.path.dirname(path)
