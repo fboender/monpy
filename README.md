@@ -82,6 +82,7 @@ Various [collectors](collectors/) are provided:
 * [`uptime`](collectors/uptime.py): System uptime information
 * [`nftables`](collectors/nftables.py): nftable firewall rules
 * [`docker`](collectors/docker.py): Docker container information
+* [`temperatures`](collectors/temperatures.py): Temperature sensor information
 * [`git`](collectors/git.py): Git repository information such as ahead /
   behind / uncommitted changes, etc
 
