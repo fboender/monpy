@@ -129,7 +129,7 @@ class Check:
             self.name,
             msg
         )
-        alerter.alert(msg)
+        alerter.alert(msg, self.name)
 
         self.state["alerts"][ident] = now
 

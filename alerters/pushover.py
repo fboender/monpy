@@ -10,9 +10,9 @@ class Pushover:
         self.app_token = app_token
         self.logger = logging.getLogger("monpy."+__name__)
 
-    def alert(self, msg):
+    def alert(self, msg, check_name):
         fqdn = socket.getfqdn()
-        html_msg = f"MonPy @ <b>{fqdn}</b> alert: {msg}"
+        html_msg = f"MonPy @ <b>{fqdn}</b> alert for '{check_name}': {msg}"
 
         conn = http.client.HTTPSConnection("api.pushover.net:443")
         conn.request("POST", "/1/messages.json",
