@@ -55,9 +55,9 @@ def low_mem():
     Check for low available memory
     """
     meminfo = collectors.memory()
-    avail_p = meminfo["MemAvailablePerc"]
-    avail_mb = meminfo['MemAvailable'] / (1024 ** 2)
-    if meminfo["MemAvailablePerc"] < LOW_MEM_AVAIL_PERC:
+    avail_p = meminfo["mem_available_perc"]
+    avail_mb = meminfo['mem_available'] / (1024 ** 2)
+    if meminfo["mem_available_perc"] < LOW_MEM_AVAIL_PERC:
         monpy.alert(
             f"Less than {LOW_MEM_AVAIL_PERC}% available memory ({avail_p:.0f}%, {avail_mb:.0f} MB)"
         )

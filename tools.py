@@ -1,5 +1,7 @@
 import os
 from pathlib import Path
+import re
+
 
 def kb_to_bytes(s):
     return int(s[:-3]) * 1024
@@ -78,4 +80,7 @@ def inode_pid_map():
         except PermissionError:
             continue
     return inode_map
+
+def camel_to_snake(s):
+    return re.sub(r'([a-z])([A-Z])', r'\1_\2', s).lower()
 
