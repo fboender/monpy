@@ -43,10 +43,10 @@ def cpu_usage():
     """
     load = collectors.load()
     history = monpy.history(load["1min"], LOAD_SAMPLES)
-    avg = sum(history) / len(history)
-    if avg > LOAD_MAX:
+    minimum = min(history)
+    if minimum > LOAD_MAX:
         monpy.alert(
-            f"Average load of last {LOAD_SAMPLES} minutes higher than {LOAD_MAX} ({avg})"
+            f"Minimum load of last {LOAD_SAMPLES} minutes higher than {LOAD_MAX} ({minimum})"
         )
 
 @monpy.check(minutely, hourly)
