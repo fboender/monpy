@@ -4,6 +4,7 @@ import fnmatch
 import errno
 import re
 import mmap
+import logging
 
 
 file_types = {
@@ -15,7 +16,6 @@ file_types = {
     40960: "link",
     49152: "socket",
 }
-
 
 def file(path):
     """
@@ -207,7 +207,7 @@ def _find_inode_in_dir(inode, dir):
         if file_info["inode"] == inode:
             return file_info["path"]
 
-def log_watch(path, monpy, from_top=False):
+def log_watch(path, monpy, parse_regex=None, from_top=False):
     """
     Yield unseen lines in `path`. If `path` has been rotated, an attempt will
     be made to find the file it was rotated to, and the unseen lines will be
@@ -216,10 +216,15 @@ def log_watch(path, monpy, from_top=False):
     `monpy` is a reference to the `MonPy()` instance, so we can track the
     state of the file (lines seen).
 
+    if `parse_regex` is supplied, we'll use the regex to parse each log line
+    and yield the resulting match. Lines not matching the regexp will cause a
+    WARNNIG log message but will otherwise be ignored.
+
     If this is the first time we see a file, and `from_top` is True, than the
     entire file is yielded. Otherwise (the default), we start from the end of
     the file.
     """
+    logger = logging.getLogger("monpy." + __name__)
     file_info = file(path)
 
     state = monpy.current_check.state
@@ -242,29 +247,40 @@ def log_watch(path, monpy, from_top=False):
             # Start at end of file
             log_state["pos"] = file_info["size"]
 
+    # Keep a list of log files and their positions that we should process
+    logs = []
+
     # Check if the inode in the current log state is the same as on disk. If
     # not, the file has been rotated or deleted
     if log_state["inode"] is not None and log_state["inode"] != file_info["inode"]:
         # Log file rotated. Find path to inode in log dir for rotated file
         prev_log_path = _find_inode_in_dir(log_state["inode"], os.path.dirname(path))
         if prev_log_path is not None:
-            # Tail the rest of the rotated log file
-            with open(prev_log_path, "r") as fh:
-                fh.seek(log_state["pos"])
-                for line in fh.readlines():
-                    yield line
+            # Rotated log file found in current dir. Add to the list of logs to
+            # process
+            logs.append((prev_log_path, log_state["pos"]))
 
         # Reset log pos so we start yielding from the top of the new log file
         log_state["pos"] = 0
 
-    # Register inode of current log file
-    log_state["inode"] = file_info["inode"]
+    # Add current (or new) log file to the list of logs to process
+    logs.append((path, log_state["pos"]))
 
-    # Tail log file
-    with open(path, "r") as fh:
-        fh.seek(log_state["pos"])
-        for line in fh.readlines():
-            yield line
+    # Process queued log files
+    for log_file, log_pos in logs:
+        with open(log_file, "r") as fh:
+            # Register inode of current log file and add to log processing queue
+            log_state["inode"] = file_info["inode"]
+            fh.seek(log_pos)
+            for line in fh.readlines():
+                if parse_regex is not None:
+                    match = re.match(parse_regex, line)
+                    if match:
+                        yield match.groupdict()
+                    else:
+                        logger.warning("RegEx didn't match line: %s", line)
+                else:
+                    yield line
 
-        # Register last position in log file in state
-        log_state["pos"] = fh.tell()
+            # Register last position in log file in state
+            log_state["pos"] = fh.tell()
