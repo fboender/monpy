@@ -119,3 +119,25 @@ You can use a custom alerter when issuing an alert:
         "test alter",
         alerter=customer_alerter
     )
+
+# Include checks from other file
+
+If you'd like to structure your checks over multiple files, you can do so
+using a wrapper. In your main file:
+
+    # Import code from security.py
+    from security import register as security_register
+
+    # Register MonPy checks found in securitypy
+    security_register(monpy)
+
+In `security.py`:
+
+    from collectors import log_watch
+
+    def register(monpy):
+        @monpy.check(60, 60)
+        def app_log_watch():
+            for line in log_watch("/path/to/server.log"):
+                if "ALERT" in line:
+                    monpy.alert("ALERT found in log file: {line}")
