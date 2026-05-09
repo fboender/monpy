@@ -10,9 +10,6 @@ import sys
 import errno
 
 
-import collectors
-
-
 __METADATA__ = {
     "name": "monpy",
     "version": "0.1",

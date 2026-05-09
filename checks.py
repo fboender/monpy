@@ -6,6 +6,7 @@ import datetime
 from monpy import *
 from config import *
 from alerters import Pushover
+import collectors
 
 
 minutely = 60
