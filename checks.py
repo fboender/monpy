@@ -397,17 +397,9 @@ def git_repo_status():
                 ident=path
             )
 
-@monpy.check(daily, daily)
-def git_repo_status_notes():
-    """
-    Check uncommited changes in Notes dir
-    """
-    path = "/home/fboender/Notes"
-    repo = collectors.git_repo(path, fetch=False)
-    if repo["has_changes"] > 0:
-        monpy.alert(
-            f"Repo '{repo['path']}' has uncommited changes",
-            ident=path
-        )
+if os.path.exists("checks_local.py"):
+    # Local only checks
+    from checks_local import register
+    register(monpy)
 
 monpy.run()
