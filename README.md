@@ -141,3 +141,18 @@ In `security.py`:
             for line in log_watch("/path/to/server.log"):
                 if "ALERT" in line:
                     monpy.alert("ALERT found in log file: {line}")
+
+If you want more control over the checks from another file, you can use
+closures and manual registration with MonPy instead of using the decorator.
+For example, in an imported file:
+
+    def test_undecorated(monpy):
+        def inner():
+            monpy.alert("Alert from undecorated")
+        return inner
+
+Then in your main checks file, you can register it manually:
+
+    from external import test_undecorated
+    monpy.register(test_undecorated(monpy), minutely, hourly)
+
