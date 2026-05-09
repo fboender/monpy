@@ -308,6 +308,30 @@ class MonPy:
             json.dump(self.state, fh)
         self.locker.unlock()
 
+    def register(self, func, check_interval, alert_interval=0):
+        name = func.__name__
+        state = self.state["checks"].setdefault(
+            name,
+            {
+                "last_run": 0,
+                "alerts": {},
+                "history": {},
+            }
+        )
+        check = Check(
+            name,
+            func,
+            check_interval,
+            alert_interval,
+            self.args.force,
+            self.alerter,
+            self.args.no_alert,
+            self.args.no_suppress,
+            state
+        )
+        self.checks.append(check)
+        self.logger.debug("Registered '%s'", check)
+
     def check(self, check_interval, alert_interval=0):
         """
         Function decorator to register a function as a monitoring check.
@@ -317,28 +341,7 @@ class MonPy:
         0 means Always Alert.
         """
         def register_wrapper(func):
-            name = func.__name__
-            state = self.state["checks"].setdefault(
-                name,
-                {
-                    "last_run": 0,
-                    "alerts": {},
-                    "history": {},
-                }
-            )
-            check = Check(
-                name,
-                func,
-                check_interval,
-                alert_interval,
-                self.args.force,
-                self.alerter,
-                self.args.no_alert,
-                self.args.no_suppress,
-                state
-            )
-            self.checks.append(check)
-            self.logger.debug("Registered '%s'", check)
+            self.register(func, check_interval, alert_interval)
 
         return register_wrapper
 
