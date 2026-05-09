@@ -380,14 +380,19 @@ def git_repo_status():
     """
     for path in GIT_REPO_STATUS:
         repo = collectors.git_repo(path)
+        if repo["has_changes"] > 0:
+            monpy.alert(
+                f"Repo '{repo['path']}' has uncommited changes",
+                ident=path
+            )
         if repo["ahead"] > 0:
             monpy.alert(
-                f"Repo '{repo['path']}' has {repo['ahead']} uncommited changes",
+                f"Repo '{repo['path']}' is {repo['ahead']} commits ahead of remote '{repo['remote_branch']}",
                 ident=path
             )
         if repo["behind"] > 0:
             monpy.alert(
-                f"Repo '{repo['path']}' is {repo['behind']} changes behind remote '{repo['remote_branch']}'",
+                f"Repo '{repo['path']}' is {repo['behind']} commits behind remote '{repo['remote_branch']}'",
                 ident=path
             )
 
