@@ -143,6 +143,7 @@ def listening_ports():
     """
     listen_ports = []
 
+    # Gather all ports that are listening on all interfaces
     for port in collectors.netstat():
         if port["state"] != "LISTEN":
             continue
@@ -151,24 +152,23 @@ def listening_ports():
 
         listen_ports.append(port)
 
+    # Check each port that listens on all interfaces to see if the executable
+    # listening on the port is in the LISTEN_PORT_PROC_ALLOWED allow list
     for listen_port in listen_ports:
+        addr = listen_port["local"][0]
         port_nr = listen_port["local"][1]
+        # There can be more than one executable listening on the port (forks),
+        # so build a list of them
+        listen_exes = [process["exe"] for process in listen_port["processes"]]
         exe_allowed = LISTEN_PORT_PROC_ALLOWED.get(port_nr, None)
-        allowed = False
 
-        listen_exes = []
-        for process in listen_port["processes"]:
-            listen_exes.append(process["exe"])
-            if process["exe"] == exe_allowed:
-                allowed = True
-                break
-
-        if allowed is False:
+        if exe_allowed not in listen_exes:
             monpy.alert(
-                f"Listening port '{port_nr}' not whitelisted. Listening exes are: {listen_exes}",
+                f"Listening port '{port_nr}' not whitelisted. Allowed executable '{exe_allowed}' not found in listening executables {listen_exes}",
                 ident=port_nr
             )
 
+# If /var/lib/docker exists, do docker checks
 if os.path.exists("/var/lib/docker/"):
     @monpy.check(minutely * 5, hourly)
     def docker_unhealthy():
