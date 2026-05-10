@@ -71,13 +71,22 @@ class Check:
         return return_value
 
     def history(self, cur_value, hist_size, ident=None):
+        """
+        Keep a list of check metrics in between invocations.
+
+        `cur_val` is the current measured value. `hist_size` determines the max
+        size of the history to keep. Older entries are evicted.
+
+        `ident` can be specified to keep multiple different histories in a
+        single check.
+        """
         if ident is None:
             ident = "_"
 
         history = self.state["history"].setdefault(ident, [])
-
-        # Record current value and prune old ones
         history.append(cur_value)
+
+        # Prune old history values
         self.state["history"][ident] = history[-hist_size:]
 
         return history
