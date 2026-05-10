@@ -1,5 +1,6 @@
 #!/bin/env python3
 
+import sys
 import stat
 import datetime
 
@@ -402,4 +403,4 @@ if os.path.exists("checks_local.py"):
     from checks_local import register
     register(monpy)
 
-monpy.run()
+sys.exit(monpy.run())

@@ -383,7 +383,7 @@ class MonPy:
         status["last_run_end"] = int(time.time())
 
         self._state_save()
-        sys.exit(exit_code)
+        return exit_code
 
     def history(self, cur_value, hist_size, ident=None):
         """
