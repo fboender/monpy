@@ -336,7 +336,7 @@ class MonPy:
         state = self.state["checks"].setdefault(
             name,
             {
-                "last_run": 0,
+                "last_run_start": 0,
                 "alerts": {},
                 "history": {},
             }
