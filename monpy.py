@@ -376,7 +376,10 @@ class MonPy:
         status = self.state.setdefault("status", {})
         status["last_run_start"] = int(time.time())
 
+        seen_checks = []
         for check in self.checks:
+            seen_checks.append(check.name)
+
             if self.args.check is not None and self.args.check != check.name:
                 self.logger.debug("Not running check '%s' due to argument '%s'", check.name, self.args.check)
                 continue
@@ -390,6 +393,11 @@ class MonPy:
             self.current_check = None
 
         status["last_run_end"] = int(time.time())
+
+        # Clean state
+        del_checks = [name for name in self.state["checks"].keys() if name not in seen_checks]
+        for del_check in del_checks:
+            self.state["checks"].pop(del_check)
 
         self._state_save()
         return exit_code
