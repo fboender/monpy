@@ -69,20 +69,20 @@ Various [collectors](collectors/) are provided:
 * [`cpu`](collectors/cpu.py): CPU usage / load averages
 * [`memory`](collectors/memory.py): Memory utilization (total, free, used,
   available) including in percentages
-* [`mounts`](collectors/mounts.py): Mount point information, including free / used
-  disk space
-* [`net`](collectors/net.py): TCP connections, HTTP calls, SSL certificate
-  information and network scanning (devices)
 * [`processes`](collectors/processes.py): Running process information, including
   the PID, path to the process, current working dir, environment and process
   status (`/proc/<PID>/status`)
+* [`net`](collectors/net.py): TCP connections, HTTP calls, SSL certificate
+  information, local ports (netstat / ss) and network scanning (devices)
 * [`files`](collectors/files.py): File iteration and information. Useful for
   checking for files existing, their size, etc. Also included `log_watch` for
   watching log files (included rotation)
-* [`uptime`](collectors/uptime.py): System uptime information
-* [`nftables`](collectors/nftables.py): nftable firewall rules
 * [`docker`](collectors/docker.py): Docker container information
 * [`temperatures`](collectors/temperatures.py): Temperature sensor information
+* [`mounts`](collectors/mounts.py): Mount point information, including free / used
+  disk space
+* [`uptime`](collectors/uptime.py): System uptime information
+* [`nftables`](collectors/nftables.py): nftable firewall rules
 * [`git`](collectors/git.py): Git repository information such as ahead /
   behind / uncommitted changes, etc
 * [`nginx`](collectors/nginx.py): Nginx stub_status module info
