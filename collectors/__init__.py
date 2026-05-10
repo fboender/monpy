@@ -9,3 +9,4 @@ from .net import tcp_connect, http, ssl_cert, netstat, devices
 from .uptime import uptime
 from .git import git_repo
 from .temperatures import temperatures
+from .nginx import nginx_status

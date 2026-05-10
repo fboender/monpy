@@ -85,6 +85,7 @@ Various [collectors](collectors/) are provided:
 * [`temperatures`](collectors/temperatures.py): Temperature sensor information
 * [`git`](collectors/git.py): Git repository information such as ahead /
   behind / uncommitted changes, etc
+* [`nginx`](collectors/nginx.py): Nginx stub_status module info
 
 # MonPy
 
