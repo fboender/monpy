@@ -39,15 +39,24 @@ class Check:
         self.no_suppress = no_suppress  # Ignore alert timeout
         self.state = state
 
+        # Save intervals in state. Purely informational
+        self.state["check_interval"] = check_interval
+        self.state["alert_interval"] = alert_interval
+
         self.logger = logging.getLogger("monpy.check")
 
     def run(self):
-        elapsed = int(time.time()) - self.state["last_run"]
+        """
+        Run this check, if `check_interval` has been reached
+        """
+        now = int(time.time())
+        elapsed = now - self.state["last_run_start"]
 
         if self.force is False and elapsed < self.check_interval:
             self.logger.debug("Not running check '%s', interval (%s) not reached (%s)", self.name, self.check_interval, elapsed)
             return
 
+        self.state["last_run_start"] = now
         self.logger.info("Running check '%s'", self.name)
         return_value = None
         try:
@@ -57,7 +66,7 @@ class Check:
             self.logger.exception(err)
             traceback.print_exc()
 
-        self.state["last_run"] = int(time.time())
+        self.state["last_run_end"] = int(time.time())
 
         return return_value
 
@@ -83,7 +92,21 @@ class Check:
 
         If `alerter` is specified, use that alerter instead of `self.alerter`.
         """
-        # FIXME: include ident in logging message
+        if ident is None:
+            ident = "_"
+
+        if alerter is None:
+            alerter = self.alerter
+
+        now = int(time.time())
+        default_alert_state = {
+            "time_seen": 0,
+            "time_sent": 0,
+            "msg": "",
+        }
+        alert_state = self.state["alerts"].setdefault(ident, default_alert_state)
+        alert_state["time_seen"] = now
+
         if self.no_alert is True:
             self.logger.info(
                 "Not sending alert (--no-alert) for '%s': %s",
@@ -92,16 +115,9 @@ class Check:
             )
             return
 
-        if ident is None:
-            ident = "_"
-
-        if alerter is None:
-            alerter = self.alerter
-
         # Check when last alert was sent
-        last_alert = self.state["alerts"].get(ident, 0)
-        now = int(time.time())
-        elapsed = now - last_alert
+        last_alert_sent = alert_state["time_sent"]
+        elapsed = now - last_alert_sent
 
         if not self.no_suppress and elapsed < self.alert_interval:
             self.logger.info(
@@ -128,7 +144,8 @@ class Check:
         )
         alerter.alert(msg, self.name)
 
-        self.state["alerts"][ident] = now
+        alert_state["time_sent"] = now
+        alert_state["msg"] = msg
 
     def __repr__(self):
         return f"<{self.__class__.__name__} " \
@@ -347,6 +364,8 @@ class MonPy:
         Run all registered monitoring checks
         """
         exit_code = 0
+        status = self.state.setdefault("status", {})
+        status["last_run_start"] = int(time.time())
 
         for check in self.checks:
             if self.args.check is not None and self.args.check != check.name:
@@ -360,6 +379,8 @@ class MonPy:
                 # Error occured
                 exit_code = 1
             self.current_check = None
+
+        status["last_run_end"] = int(time.time())
 
         self._state_save()
         sys.exit(exit_code)
