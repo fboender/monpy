@@ -55,6 +55,16 @@ def http(url,
          password=None):
     """
     Make HTTP(s) requests.
+
+    Returns:
+
+        {
+            "status": 200,                 # HTTP status code
+            "body": "<DECODED_BODY_TEXT>", # Body
+            "headers": {},                 # Server response headers
+            "response_sec": 0.434          # Response time (seconds)
+        }
+
     """
     headers = {
         "User-Agent": "monpy/1.0",
@@ -68,12 +78,15 @@ def http(url,
         headers["Content-Type"] = content_type
 
     logger.debug("Making HTTP %s call to %s", method, url)
+    start = datetime.datetime.now()
     req = Request(
         url,
         method=method,
         data=data,
         headers=headers
     )
+    end = datetime.datetime.now()
+    response_sec = (end - start).total_seconds() * 1000
 
     with urlopen(req) as response:
         logger.debug("Response status: %s", response.status)
@@ -81,6 +94,7 @@ def http(url,
             "status": response.status,
             "body": response.read().decode(),
             "headers": dict(response.headers),
+            "response_sec": response_sec
         }
 
 def ssl_cert(host, port=443):
