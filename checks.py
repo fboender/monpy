@@ -1,5 +1,6 @@
 #!/bin/env python3
 
+import os
 import sys
 import stat
 import datetime
@@ -397,6 +398,17 @@ def git_repo_status():
                 f"Repo '{repo['path']}' is {repo['behind']} commits behind remote '{repo['remote_branch']}'",
                 ident=path
             )
+
+@monpy.check(hourly, daily)
+def reboot_required():
+    """
+    Debian-derived systems touch /run/reboot-required when a package indicates
+    that the system needs to be rebooted for the upgrade to fully take effect.
+    """
+    if os.path.exists("/run/reboot-required") or os.path.exists("/var/run/reboot-required"):
+        monpy.alert(
+            f"A reboot is required after updating packages."
+        )
 
 if os.path.exists("checks_local.py"):
     # Local only checks
