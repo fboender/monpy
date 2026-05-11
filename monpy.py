@@ -28,9 +28,10 @@ class Check:
     This is not a class to derive checks from. Use the `MonPy.check` decorator
     for that.
     """
-    def __init__(self, name, func, check_interval, alert_interval, force, alerter, no_alert, no_suppress, state):
+    def __init__(self, name, func, desc, check_interval, alert_interval, force, alerter, no_alert, no_suppress, state):
         self.name = name
         self.func = func
+        self.desc = desc
         self.check_interval = check_interval
         self.alert_interval = alert_interval
         self.force = force              # Force run
@@ -40,6 +41,7 @@ class Check:
         self.state = state
 
         # Save intervals in state. Purely informational
+        self.state["desc"] = desc
         self.state["check_interval"] = check_interval
         self.state["alert_interval"] = alert_interval
 
@@ -111,7 +113,7 @@ class Check:
         default_alert_state = {
             "time_seen": 0,
             "time_sent": 0,
-            "msg": "",
+            "msg": msg,
         }
         alert_state = self.state["alerts"].setdefault(ident, default_alert_state)
         alert_state["time_seen"] = now
@@ -333,6 +335,9 @@ class MonPy:
 
     def register(self, func, check_interval, alert_interval=0):
         name = func.__name__
+        desc = ""
+        if func.__doc__ is not None:
+            desc = " ".join([s.strip() for s in func.__doc__.strip().splitlines()])
         state = self.state["checks"].setdefault(
             name,
             {
@@ -344,6 +349,7 @@ class MonPy:
         check = Check(
             name,
             func,
+            desc,
             check_interval,
             alert_interval,
             self.args.force,
