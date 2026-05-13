@@ -121,7 +121,22 @@ You can use a custom alerter when issuing an alert:
         alerter=customer_alerter
     )
 
-# Include checks from other file
+# Reporters
+
+At the end of a run, you can generate a report about the current status. At
+the moment, only a HTML reporter is available. To use it:
+
+    from reporters import HTML
+    reporter = HTML(out_path="/var/lib/monpy/report.html")
+    monpy = MonPy(reporter=reporter)
+
+Output example:
+
+![html report](contrib/report_html.png)
+
+# How-to
+
+## Include checks from other file
 
 If you'd like to structure your checks over multiple files, you can do so
 using a wrapper. In your main file:

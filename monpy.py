@@ -236,8 +236,9 @@ class Lock:
 
 
 class MonPy:
-    def __init__(self, alerter=None, state_path=STATE_PATH):
+    def __init__(self, alerter=None, reporter=None, state_path=STATE_PATH):
         self.alerter = alerter
+        self.reporter = reporter
         self.state_path = state_path
 
         # Reference to currently running check (self.run()), so that the check
@@ -406,6 +407,12 @@ class MonPy:
             self.state["checks"].pop(del_check)
 
         self._state_save()
+
+        # Call reporter
+        if self.reporter is not None:
+            self.logger.info("Calling reporter '%s'", self.reporter)
+            self.reporter.render(self.state)
+
         return exit_code
 
     def history(self, cur_value, hist_size, ident=None):

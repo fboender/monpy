@@ -22,6 +22,7 @@ from monpy import *
 from config import *
 from alerters import Pushover
 import collectors
+from reporters import HTML
 
 
 minutely = 60
@@ -31,7 +32,8 @@ weekly = 60 * 60 * 24 * 7
 
 
 alerter = Pushover(PUSHOVER_USER_TOKEN, PUSHOVER_APP_TOKEN)
-monpy = MonPy(alerter=alerter)
+reporter = HTML(out_path="/var/lib/monpy/report.html")
+monpy = MonPy(alerter=alerter, reporter=reporter)
 
 #############################################################################
 # System resource monitoring
