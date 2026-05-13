@@ -20,6 +20,9 @@ weekly = 60 * 60 * 24 * 7
 alerter = Pushover(PUSHOVER_USER_TOKEN, PUSHOVER_APP_TOKEN)
 monpy = MonPy(alerter=alerter)
 
+#############################################################################
+# System resource monitoring
+#############################################################################
 @monpy.check(minutely * 10, daily)
 def disk_space():
     """
@@ -68,7 +71,7 @@ def low_mem():
 @monpy.check(minutely, hourly)
 def temperatures():
     """
-    Check for high temperatures
+    Check all available system sensors for high temperatures
     """
     for t_info in collectors.temperatures():
         if t_info["temperature"] > MAX_TEMPERATURE:
@@ -99,13 +102,216 @@ def proc_with_high_mem():
                 ident=process["pid"]
             )
 
+
+#############################################################################
+# Docker
+#############################################################################
+# If /var/lib/docker exists, do docker checks
+if os.path.exists("/var/lib/docker/"):
+    @monpy.check(minutely * 5, hourly)
+    def docker_unhealthy():
+        """
+        Check for unhealthy containers.
+        """
+        for container in collectors.docker_containers():
+            name = container['Name'].lstrip('/')
+            if "Health" not in container["State"]:
+                # No health check
+                continue
+
+            health_status = container["State"]["Health"]["Status"]
+
+            if health_status != "healthy":
+                monpy.alert(
+                   f"Container '{name}' is not healthy ({health_status})",
+                    ident=container["Id"]
+                )
+
+    @monpy.check(hourly, daily)
+    def docker_wildcard_bind():
+        """
+        Check for containers that bind ports on all interfaces (0.0.0.0), and
+        are not configured in ALLOW_DOCKER_WILDCARD_BINDS. This bypasses the
+        firewall
+        """
+        for container in collectors.docker_containers():
+            if container["State"]["Running"] is not True:
+                # We don't care of the container isn't running
+                continue
+
+            ports = container["NetworkSettings"]["Ports"]
+            if ports is None:
+                continue
+
+            for port, host_ports in ports.items():
+                if port in ALLOW_DOCKER_WILDCARD_BINDS:
+                    continue
+
+                if host_ports is None:
+                    continue
+
+                for host_port in host_ports:
+                    if host_port["HostIp"] == "0.0.0.0":
+                        monpy.alert(
+                            f"Container '{container['Name'].lstrip('/')}' exposes port {port} on all interfaces (0.0.0.0)",
+                            ident=f"{container['Name']}-{port}",
+                        )
+
+    @monpy.check(hourly, daily)
+    def docker_mount_socket():
+        """
+        Check if a docker container mounts the docker socket into it. This is a
+        security smell
+        """
+        for container in collectors.docker_containers():
+            if container["State"]["Running"] is not True:
+                # We don't care of the contaiener isn't running
+                continue
+
+            container_name = container["Name"].lstrip("/")
+            if container_name in ALLOW_CONTAINER_DOCKER_SOCKET:
+                continue
+            for mount in container["Mounts"]:
+                if mount["Source"] == "/var/run/docker.sock":
+                    monpy.alert(
+                        f"Container '{container['Name'].lstrip('/')}' mounts the docker socket in the container",
+                        ident=container_name
+                    )
+
+#############################################################################
+# Network and website monitoring
+#############################################################################
+@monpy.check(minutely * 5, hourly)
+def host_ports_reachable():
+    """
+    Check configured host/ports to see if they are reachable
+    """
+    for host_port in HOST_PORTS_REACHABLE:
+        try:
+            hostname = host_port[0]
+            port = host_port[1]
+            reachable = collectors.tcp_connect(hostname, port, raise_exception=True)
+        except (ConnectionRefusedError, TimeoutError) as err:
+            monpy.alert(
+                f"Host '{hostname}:{port}' unreachable: {str(err)}'",
+                ident=f"{hostname}:{port}"
+            )
+
+@monpy.check(minutely * 15, hourly)
+def http_body():
+    """
+    Check sites and make sure they're responding with the right data
+    """
+    for check in HTTP_BODY_CHECKS:
+        url, required_status, found_in_body = check
+        res = collectors.http(url)
+        if res["status"] != required_status:
+            monpy.alert(
+                f"URL '{url} returned status {res['status']}, while '{required_status}' was expected'",
+                ident=f"{url}"
+            )
+        if found_in_body not in res["body"]:
+            monpy.alert(
+                f"URL '{url} response body didn't contain required text '{found_in_body}'",
+                ident=f"{url}"
+            )
+
+@monpy.check(daily, daily)
+def ssl_expire():
+    """
+    Check sites for expiring ssl certs
+    """
+    for check in SSL_CERT_CHECKS:
+        host, port, days = check
+
+        ssl_info = collectors.ssl_cert(host, port)
+        subject = ssl_info["subject"]["commonName"]
+        if ssl_info["expires_days"] <= days:
+            monpy.alert(
+                f"SSL certificate for '{host}:{port}' (CN={subject}) expires in {ssl_info['expires_days']} days ({ssl_info['not_after_dt']})",
+                ident=f"{host}:{port}"
+            )
+
+@monpy.check(hourly, daily)
+def mail():
+    """
+    Check if there is local mail in /var/spool/mail. This happens if the mail
+    server cannot deliver mail
+    """
+    for file in collectors.files("/var/spool/mail"):
+        if file["size"] > 0:
+            monpy.alert(
+                f"Mail found in /var/spool/mail for '{file['filename']}'",
+                ident=file["filename"]
+            )
+
+@monpy.check(daily, daily)
+def cron_mailto():
+    """
+    Check that crontabs contain a MAILTO so we're notified of problems
+    """
+    files = []
+    files.append(collectors.file("/etc/crontab"))
+    # FIXME
+    #files.extend(collectors.files("/etc/cron.d"))
+    files.extend(collectors.files("/var/spool/cron/crontabs"))
+
+    for file in files:
+        if collectors.egrep(file["path"], b".*MAILTO.*") is None:
+            monpy.alert(
+                f"Cron file '{file['path']}' has no MAILTO",
+                ident=file["path"],
+            )
+
+#############################################################################
+# Security scans
+#############################################################################
 @monpy.check(daily, daily)
 def high_uptime():
+    """
+    Check for high system uptime. Systems should be regularly rebooted
+    """
     uptime = collectors.uptime()
     if uptime["uptime"] > UPTIME_DAYS * 24 * 60 * 60:
         monpy.alert(
             f"Uptime is higher than {UPTIME_DAYS} days"
         )
+
+@monpy.check(hourly, daily)
+def executables_in_tmp():
+    """
+    Check for executables in temp directories. These are indicators of system
+    compromise (malware, coin miners)
+    """
+    def error(path, err):
+        # AppImage mounts can't be read even by root. Same for stuff in
+        # /run/user (only readable for that user)
+        if (
+            isinstance(err, PermissionError) and (
+                ".mount_" in path or
+                "/run/user" in path
+            )
+        ):
+            return
+
+        raise err
+
+    for temp_path in TEMP_PATHS:
+        for file in collectors.files(temp_path, ftype='file', one_fs=False, on_error=error):
+            is_exec = bool(file["mode"] & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH))
+            if not is_exec:
+                continue
+
+            # Ignore Python standalone executables.
+            # FIXME: Would be better to actually checvk for specific standalone
+            # executables (such as 'borg'), but that's tricky for now.
+            if "_MEI" in file["path"]:
+                continue
+
+            monpy.alert(
+                f"Executable found in temp dir: {file['path']}",
+                ident=file["path"]
+            )
 
 @monpy.check(minutely, hourly)
 def nftables_default_policy():
@@ -140,8 +346,8 @@ def nftables_default_policy():
 @monpy.check(minutely * 5, hourly)
 def listening_ports():
     """
-    Check all local portslistening external (all) interfaces against a
-    allowlist.
+    Check all local ports that are listening on external (all) interfaces
+    against a allowlist
     """
     listen_ports = []
 
@@ -170,164 +376,11 @@ def listening_ports():
                 ident=port_nr
             )
 
-# If /var/lib/docker exists, do docker checks
-if os.path.exists("/var/lib/docker/"):
-    @monpy.check(minutely * 5, hourly)
-    def docker_unhealthy():
-        """
-        Check for unhealthy containers.
-        """
-        for container in collectors.docker_containers():
-            name = container['Name'].lstrip('/')
-            if "Health" not in container["State"]:
-                # No health check
-                continue
-
-            health_status = container["State"]["Health"]["Status"]
-
-            if health_status != "healthy":
-                monpy.alert(
-                   f"Container '{name}' is not healthy ({health_status})",
-                    ident=container["Id"]
-                )
-
-    @monpy.check(hourly, daily)
-    def docker_wildcard_bind():
-        """
-        Check for containers that bind ports on all interfaces (0.0.0.0), and are
-        not configured in ALLOW_DOCKER_WILDCARD_BINDS.
-        """
-        for container in collectors.docker_containers():
-            if container["State"]["Running"] is not True:
-                # We don't care of the container isn't running
-                continue
-
-            ports = container["NetworkSettings"]["Ports"]
-            if ports is None:
-                continue
-
-            for port, host_ports in ports.items():
-                if port in ALLOW_DOCKER_WILDCARD_BINDS:
-                    continue
-
-                if host_ports is None:
-                    continue
-
-                for host_port in host_ports:
-                    if host_port["HostIp"] == "0.0.0.0":
-                        monpy.alert(
-                            f"Container '{container['Name'].lstrip('/')}' exposes port {port} on all interfaces (0.0.0.0)",
-                            ident=f"{container['Name']}-{port}",
-                        )
-
-    @monpy.check(hourly, daily)
-    def docker_mount_socket():
-        """
-        Check if a docker container mounts the docker socket into it.
-        """
-        for container in collectors.docker_containers():
-            if container["State"]["Running"] is not True:
-                # We don't care of the contaiener isn't running
-                continue
-
-            container_name = container["Name"].lstrip("/")
-            if container_name in ALLOW_CONTAINER_DOCKER_SOCKET:
-                continue
-            for mount in container["Mounts"]:
-                if mount["Source"] == "/var/run/docker.sock":
-                    monpy.alert(
-                        f"Container '{container['Name'].lstrip('/')}' mounts the docker socket in the container",
-                        ident=container_name
-                    )
-
-@monpy.check(hourly, daily)
-def mail():
-    """
-    Check if there is local mail. This happens if the mail server cannot
-    deliver mail.
-    """
-    for file in collectors.files("/var/spool/mail"):
-        if file["size"] > 0:
-            monpy.alert(
-                f"Mail found in /var/spool/mail for '{file['filename']}'",
-                ident=file["filename"]
-            )
-
-@monpy.check(daily, daily)
-def cron_mailto():
-    """
-    Check that crontabs contain a MAILTO so we're notified of problems
-    """
-    files = []
-    files.append(collectors.file("/etc/crontab"))
-    # FIXME
-    #files.extend(collectors.files("/etc/cron.d"))
-    files.extend(collectors.files("/var/spool/cron/crontabs"))
-
-    for file in files:
-        if collectors.egrep(file["path"], b".*MAILTO.*") is None:
-            monpy.alert(
-                f"Cron file '{file['path']}' has no MAILTO",
-                ident=file["path"],
-            )
-
-@monpy.check(hourly, daily)
-def executables_in_tmp():
-    """
-    Check for executables in temp directories
-    """
-    def error(path, err):
-        # AppImage mounts can't be read even by root. Same for stuff in
-        # /run/user (only readable for that user)
-        if (
-            isinstance(err, PermissionError) and (
-                ".mount_" in path or
-                "/run/user" in path
-            )
-        ):
-            return
-
-        raise err
-
-    for temp_path in TEMP_PATHS:
-        for file in collectors.files(temp_path, ftype='file', one_fs=False, on_error=error):
-            is_exec = bool(file["mode"] & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH))
-            if not is_exec:
-                continue
-
-            # Ignore Python standalone executables.
-            # FIXME: Would be better to actually checvk for specific standalone
-            # executables (such as 'borg'), but that's tricky for now.
-            if "_MEI" in file["path"]:
-                continue
-
-            monpy.alert(
-                f"Executable found in temp dir: {file['path']}",
-                ident=file["path"]
-            )
-
-@monpy.check(minutely * 5, hourly)
-def host_ports_reachable():
-    """
-    Check configured host/ports to see if they are reachable
-    """
-    for host_port in HOST_PORTS_REACHABLE:
-        try:
-            hostname = host_port[0]
-            port = host_port[1]
-            reachable = collectors.tcp_connect(hostname, port, raise_exception=True)
-        except (ConnectionRefusedError, TimeoutError) as err:
-            monpy.alert(
-                f"Host '{hostname}:{port}' unreachable: {str(err)}'",
-                ident=f"{hostname}:{port}"
-            )
-
 if SCAN_DEVICES_NETWORK is not False:
     @monpy.check(hourly, hourly)
     def network_devices():
         """
-        Scan for new devices (MAC addresses) on a network. This check keeps
-        custom state in between invocations.
+        Scan for new devices (MAC addresses) on a network
         """
         device_status = monpy.current_check.state.setdefault("devices", [])
         for device in collectors.devices(SCAN_DEVICES_NETWORK):
@@ -340,64 +393,6 @@ if SCAN_DEVICES_NETWORK is not False:
                     f"New device found on network '{SCAN_DEVICES_NETWORK}': {device['ip']} (hostname={device['hostname']}, vendor={device['vendor']})",
                     device["mac"]
                 )
-
-@monpy.check(minutely * 15, hourly)
-def http_body():
-    """
-    Check some sites and make sure they're responding with the right data
-    """
-    for check in HTTP_BODY_CHECKS:
-        url, required_status, found_in_body = check
-        res = collectors.http(url)
-        if res["status"] != required_status:
-            monpy.alert(
-                f"URL '{url} returned status {res['status']}, while '{required_status}' was expected'",
-                ident=f"{url}"
-            )
-        if found_in_body not in res["body"]:
-            monpy.alert(
-                f"URL '{url} response body didn't contain required text '{found_in_body}'",
-                ident=f"{url}"
-            )
-
-@monpy.check(daily, daily)
-def ssl_expire():
-    """
-    Check some sites for expiring ssl certs
-    """
-    for check in SSL_CERT_CHECKS:
-        host, port, days = check
-
-        ssl_info = collectors.ssl_cert(host, port)
-        subject = ssl_info["subject"]["commonName"]
-        if ssl_info["expires_days"] <= days:
-            monpy.alert(
-                f"SSL certificate for '{host}:{port}' (CN={subject}) expires in {ssl_info['expires_days']} days ({ssl_info['not_after_dt']})",
-                ident=f"{host}:{port}"
-            )
-
-@monpy.check(daily, daily)
-def git_repo_status():
-    """
-    Check for out-of-date git repositories
-    """
-    for path in GIT_REPO_STATUS:
-        repo = collectors.git_repo(path)
-        if repo["has_changes"] > 0:
-            monpy.alert(
-                f"Repo '{repo['path']}' has uncommited changes",
-                ident=path
-            )
-        if repo["ahead"] > 0:
-            monpy.alert(
-                f"Repo '{repo['path']}' is {repo['ahead']} commits ahead of remote '{repo['remote_branch']}",
-                ident=path
-            )
-        if repo["behind"] > 0:
-            monpy.alert(
-                f"Repo '{repo['path']}' is {repo['behind']} commits behind remote '{repo['remote_branch']}'",
-                ident=path
-            )
 
 @monpy.check(daily, daily)
 def apt_security_upgrades_available():
@@ -425,6 +420,32 @@ def reboot_required():
         monpy.alert(
             f"A reboot is required after updating packages."
         )
+
+#############################################################################
+# Misc stuff
+#############################################################################
+@monpy.check(daily, daily)
+def git_repo_status():
+    """
+    Check for out-of-date git repositories
+    """
+    for path in GIT_REPO_STATUS:
+        repo = collectors.git_repo(path)
+        if repo["has_changes"] > 0:
+            monpy.alert(
+                f"Repo '{repo['path']}' has uncommited changes",
+                ident=path
+            )
+        if repo["ahead"] > 0:
+            monpy.alert(
+                f"Repo '{repo['path']}' is {repo['ahead']} commits ahead of remote '{repo['remote_branch']}",
+                ident=path
+            )
+        if repo["behind"] > 0:
+            monpy.alert(
+                f"Repo '{repo['path']}' is {repo['behind']} commits behind remote '{repo['remote_branch']}'",
+                ident=path
+            )
 
 if os.path.exists("checks_local.py"):
     # Local only checks
