@@ -404,7 +404,7 @@ def apt_security_upgrades_available():
     """
     Notify about security upgrades being available.
     """
-    upgrades = collectors.apt_upgrades(update=False)
+    upgrades = collectors.apt_upgrades()
     security_upgrades = []
     for upgrade in upgrades:
         if len([origin for origin in upgrade["origins"] if "security" in origin]) > 0:
