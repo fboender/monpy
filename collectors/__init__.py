@@ -10,3 +10,4 @@ from .uptime import uptime
 from .git import git_repo
 from .temperatures import temperatures
 from .nginx import nginx_status
+from .apt import apt_upgrades, reboot_required
