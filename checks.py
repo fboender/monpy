@@ -248,7 +248,7 @@ def ssl_expire():
             )
 
 @monpy.check(hourly, daily)
-def mail():
+def mail_in_spool():
     """
     Check if there is local mail in /var/spool/mail. This happens if the mail
     server cannot deliver mail
