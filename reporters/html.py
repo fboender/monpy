@@ -110,6 +110,8 @@ from datetime import datetime, timedelta
         text-align: left;
         padding: 3px 15px 6px 6px;
         font-weight: bold;
+    }
+    table.data th {
         background-color: #606060;
         color: #FFFFFF;
     }
@@ -154,23 +156,23 @@ from datetime import datetime, timedelta
 <div id="wrapper">
 
 <h1>{{ hostname }}</h1>
-<table>
+<table class="info">
     <tr>
-        <th>Last run (start)</th>
+        <th>Last run (start):</th>
         <td>{{ last_run_start }}
     </tr>
     <tr>
-        <th>Last run (end)</th>
+        <th>Last run (end):</th>
         <td>{{ last_run_end }}
     </tr>
     <tr>
-        <th>Duration</th>
+        <th>Duration:</th>
         <td>{{ last_run_end - last_run_start }}</td>
     </tr>
 </table>
 
 <h2>Check status</h2>
-<table class="maxwidth">
+<table class="data maxwidth">
     <tr>
         <th>Check</th>
         <th>Status</th>
@@ -198,7 +200,7 @@ for check in checks:
 </table>
 
 <h2>Alerts</h2>
-<table class="maxwidth">
+<table class="data maxwidth">
     <tr>
         <th>Check</th>
         <th>Time</th>
