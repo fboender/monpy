@@ -1,5 +1,18 @@
 #!/bin/env python3
 
+#
+# EXAMPLE CHECKS
+#
+# These are just some examples of monitoring checks you can create with MonPy.
+# You can base your own monitoring script(s) on this file.
+#
+# This file uses a configuration file (`config.py`). If you want to try out the
+# checks in this example:
+#
+#   $ cp config.py.in config.py    # modify if needed
+#   $ sudo ./checks.py -vvv
+#
+
 import os
 import sys
 import stat
