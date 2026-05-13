@@ -399,13 +399,29 @@ def git_repo_status():
                 ident=path
             )
 
+@monpy.check(daily, daily)
+def apt_security_upgrades_available():
+    """
+    Notify about security upgrades being available.
+    """
+    upgrades = collectors.apt_upgrades(update=False)
+    security_upgrades = []
+    for upgrade in upgrades:
+        if len([origin for origin in upgrade["origins"] if "security" in origin]) > 0:
+            security_upgrades.append(f"- {upgrade['name']} (to {upgrade['upgrade_to']})")
+
+    if security_upgrades:
+        msg = "Security upgrades available:\n\n"
+        msg += "\n".join(security_upgrades)
+        monpy.alert(msg)
+
 @monpy.check(hourly, daily)
 def reboot_required():
     """
     Debian-derived systems touch /run/reboot-required when a package indicates
     that the system needs to be rebooted for the upgrade to fully take effect.
     """
-    if os.path.exists("/run/reboot-required") or os.path.exists("/var/run/reboot-required"):
+    if collectors.reboot_required() is True:
         monpy.alert(
             f"A reboot is required after updating packages."
         )
