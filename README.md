@@ -43,6 +43,22 @@ Example ouput (`-vvv` verbose mode):
     2026-05-03 11:12:08,494     INFO check | Running check 'mail'
     2026-05-03 11:12:08,494     INFO root | Supressing alert for 'mail'. Alert interval (86400s) not reached (1380s elapsed). Alert: Mail found in /var/spool/mail for 'fboender'
 
+# MonPy class
+
+The `MonPy` class is the main orchestrator. It registers (via the
+`MonPy.check()` decorator) checks, alerters and reporters. It runs checks,
+provides various tools:
+
+* `MonPy.check()`: Decorator function for registering checks. `check_interval`
+  parameter determines how often to run the check. `alert_interval` limits
+  alerts to one every interval.
+* `MonPy.history()`: Keeps a (persisted in
+  between invocations) history of previous check values.
+* `MonPy.alert()`: Send alerts if `alert_interval` has been reached for the
+  alert.
+* `MonPy.logger`: Logging instance
+* `MonPy.state`: Persistent state
+
 # Checks
 
 Checks are written in Python as functions with the `monpy.check()` decorator.
@@ -72,34 +88,22 @@ Various [collectors](collectors/) are provided:
 * [`processes`](collectors/processes.py): Running process information, including
   the PID, path to the process, current working dir, environment and process
   status (`/proc/<PID>/status`)
-* [`net`](collectors/net.py): TCP connections, HTTP calls, SSL certificate
-  information, local ports (netstat / ss) and network scanning (devices)
+* [`temperatures`](collectors/temperatures.py): Temperature sensor information
 * [`files`](collectors/files.py): File iteration and information. Useful for
   checking for files existing, their size, etc. Also included `log_watch` for
-  watching log files (included rotation)
-* [`docker`](collectors/docker.py): Docker container information
-* [`temperatures`](collectors/temperatures.py): Temperature sensor information
+  watching log files (with support for log rotation)
 * [`mounts`](collectors/mounts.py): Mount point information, including free / used
   disk space
 * [`uptime`](collectors/uptime.py): System uptime information
 * [`nftables`](collectors/nftables.py): nftable firewall rules
+* [`net`](collectors/net.py): TCP connections, HTTP calls, SSL certificate
+  information, local ports (netstat / ss) and network scanning (devices)
+* [`apt`](collectors/apt.py): Debian-derived 'apt' info such as uninstalled
+  (security) updates and whether a reboot is required
+* [`docker`](collectors/docker.py): Docker container information
 * [`git`](collectors/git.py): Git repository information such as ahead /
   behind / uncommitted changes, etc
 * [`nginx`](collectors/nginx.py): Nginx stub_status module info
-
-# MonPy
-
-The `MonPy` class registers (via the `MonPy.check()` decorator) and runs
-checks, and provides various tools:
-
-* `MonPy.logger`: Logging instance
-* `MonPy.check()`: Decorator function for registering checks. `check_interval`
-  parameter determines how often to run the check. `alert_interval` limits
-  alerts to one every interval.
-* `MonPy.history()`: Keeps a (persisted in
-  between invocations) history of previous check values.
-* `MonPy.alert()`: Send alerts if `alert_interval` has been reached for the
-  alert.
 
 # Alerters
 
