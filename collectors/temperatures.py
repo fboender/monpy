@@ -2,7 +2,7 @@ from pathlib import Path
 
 def temperatures():
     """
-    Read temperatures for various sensors.
+    Read temperatures (°C) for various sensors.
 
     Yields:
 
