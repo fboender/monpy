@@ -28,17 +28,19 @@ class Check:
     This is not a class to derive checks from. Use the `MonPy.check` decorator
     for that.
     """
-    def __init__(self, name, func, desc, check_interval, alert_interval, force, alerter, no_alert, no_suppress, state):
+    def __init__(self, name, func, desc, check_interval, alert_interval, alert_after, force, alerter, no_alert, no_suppress, state):
         self.name = name
         self.func = func
         self.desc = desc
         self.check_interval = check_interval
         self.alert_interval = alert_interval
+        self.alert_after = alert_after
         self.force = force              # Force run
         self.alerter = alerter          # Alerter class
         self.no_alert = no_alert        # Do not emmit alerts (--no-alert)
         self.no_suppress = no_suppress  # Ignore alert timeout
         self.state = state
+        self.alerted = False
 
         # Save intervals in state. Purely informational
         self.state["desc"] = desc
@@ -67,6 +69,10 @@ class Check:
             return_value = err
             self.logger.exception(err)
             traceback.print_exc()
+
+        if self.alerted is False and "alert_count" in self.state:
+            # Check did not alert. Reset alert_count
+            self.state.pop("alert_count")
 
         self.state["last_run_end"] = int(time.time())
 
@@ -105,6 +111,13 @@ class Check:
         """
         if ident is None:
             ident = "_"
+
+        # Don't alert until `alert_after` alerts
+        self.alerted = True  # So we can clear alert count in run() if not alerted
+        self.state["alert_count"] = self.state.get("alert_count", 0) + 1
+        if self.state["alert_count"] < self.alert_after:
+            self.logger.info("Not alerting for '%s' because alert count not reached (%s/%s)", self.name, self.state["alert_count"], self.alert_after)
+            return
 
         if alerter is None:
             alerter = self.alerter
@@ -334,7 +347,7 @@ class MonPy:
             json.dump(self.state, fh)
         self.locker.unlock()
 
-    def register(self, func, check_interval, alert_interval=0):
+    def register(self, func, check_interval, alert_interval=0, alert_after=1):
         name = func.__name__
         desc = ""
         if func.__doc__ is not None:
@@ -353,6 +366,7 @@ class MonPy:
             desc,
             check_interval,
             alert_interval,
+            alert_after,
             self.args.force,
             self.alerter,
             self.args.no_alert,
@@ -362,16 +376,24 @@ class MonPy:
         self.checks.append(check)
         self.logger.debug("Registered '%s'", check)
 
-    def check(self, check_interval, alert_interval=0):
+    def check(self, check_interval, alert_interval=0, alert_after=1):
         """
         Function decorator to register a function as a monitoring check.
 
         `check_interval` determines how often to check (seconds).
+
         `alert_interval` determines how long to wait between alerts (seconds).
         0 means Always Alert.
+
+        Alerts will be supressed until the check alerts `alert_after` times in
+        a row. Default is 1, which will alert immediately. If the check
+        recoveres before reaching `alert_after`, the alert counter will be
+        reset and no alert will be sent. Note that this interacts with the
+        `check_interval` value. If `check_interval` is 5 minutes and
+        `alert_after` is 2, an alert won't be sent for 10 minutes.
         """
         def register_wrapper(func):
-            self.register(func, check_interval, alert_interval)
+            self.register(func, check_interval, alert_interval, alert_after)
 
         return register_wrapper
 

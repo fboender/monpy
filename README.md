@@ -49,11 +49,9 @@ The `MonPy` class is the main orchestrator. It registers (via the
 `MonPy.check()` decorator) checks, alerters and reporters. It runs checks,
 provides various tools:
 
-* `MonPy.check()`: Decorator function for registering checks. `check_interval`
-  parameter determines how often to run the check. `alert_interval` limits
-  alerts to one every interval.
-* `MonPy.history()`: Keeps a (persisted in
-  between invocations) history of previous check values.
+* `MonPy.check()`: Decorator function for registering checks.
+* `MonPy.history()`: Keeps a (persisted in between invocations) history of
+  previous check values.
 * `MonPy.alert()`: Send alerts if `alert_interval` has been reached for the
   alert.
 * `MonPy.logger`: Logging instance
@@ -61,7 +59,24 @@ provides various tools:
 
 # Checks
 
-Checks are written in Python as functions with the `monpy.check()` decorator.
+Checks are written in Python as functions with the `monpy.check()` decorator:
+
+    def check(self, check_interval, alert_interval=0, alert_after=1):
+        """
+        Function decorator to register a function as a monitoring check.
+
+        `check_interval` determines how often to check (seconds).
+
+        `alert_interval` determines how long to wait between alerts (seconds).
+        0 means Always Alert.
+
+        Alerts will be supressed until the check alerts `alert_after` times in
+        a row. Default is 1, which will alert immediately. If the check
+        recoveres before reaching `alert_after`, the alert counter will be
+        reset and no alert will be sent. Note that this interacts with the
+        `check_interval` value. If `check_interval` is 5 minutes and
+        `alert_after` is 2, an alert won't be sent for 10 minutes.
+        """
 
 For example, the following check runs every minute, and alerts once an hour if
 a problem occurs. It uses the "load" [collectors](collectors/) to retrieve the
