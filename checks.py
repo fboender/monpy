@@ -196,7 +196,7 @@ if os.path.exists("/var/lib/docker/"):
 #############################################################################
 # Network and website monitoring
 #############################################################################
-@monpy.check(minutely * 5, hourly)
+@monpy.check(minutely * 5, hourly, alert_after=2)
 def host_ports_reachable():
     """
     Check configured host/ports to see if they are reachable
@@ -212,7 +212,7 @@ def host_ports_reachable():
                 ident=f"{hostname}:{port}"
             )
 
-@monpy.check(minutely * 15, hourly)
+@monpy.check(minutely * 5, hourly, alert_after=2)
 def http_body():
     """
     Check sites and make sure they're responding with the right data
