@@ -21,6 +21,75 @@ __METADATA__ = {
 STATE_PATH = "/var/lib/monpy/state.json"
 
 
+class Lock:
+    """
+    Class to lock a file, to prevent multiple processes from writing to it at
+    the same time.
+    """
+    def __init__(self, path):
+        self.path = path
+
+    def lock(self):
+        """
+        Lock the path. Returns True if the file was locked, otherwise returns
+        the PID of the processes that's keeping the lock.
+        """
+        other_pid = self.is_locked()
+        if other_pid:
+            return other_pid
+            #raise Exception("Process already running under PID {}".format(other_pid))
+
+        our_pid = os.getpid()
+        with open(self.path, 'w') as pidfile:
+            pidfile.write(str(our_pid))
+            pidfile.flush()
+
+        return True
+
+    def unlock(self):
+        os.unlink(self.path)
+
+    def is_locked(self):
+        """
+        Return `False` if process not yet locked. Return the PID of the other
+        process if it is locked.
+        """
+        if not os.path.exists(self.path):
+            return False
+
+        with open(self.path, 'r') as pidfile:
+            try:
+                pid = int(pidfile.read().strip())
+                assert pid != 0
+            except Exception:
+                # Something's wrong with the pidfile. Remove it
+                unlock(self.path)
+                return False
+
+            if self._is_pid_running(pid):
+                return pid
+            else:
+                # PID isn't running, but the lock file was still present. Maybe the
+                # process crashed? Remove PID file and pretend it wasn't locked.
+                self.unlock()
+                return False
+
+    def _is_pid_running(self, pid):
+        try:
+            os.kill(pid, 0)
+        except OSError as err:
+            if err.errno == errno.ESRCH:
+                return False
+            elif err.errno == errno.EPERM:
+                return True
+            else:
+                # According to "man 2 kill" possible error values are
+                # (EINVAL, EPERM, ESRCH)
+                raise
+        else:
+            return True
+
+
 class Check:
     """
     Class that internally represents a check to be performed.
@@ -189,75 +258,6 @@ class Check:
                f"check_interval={self.check_interval} " \
                f"alert_interval={self.alert_interval}" \
                ">"
-
-
-class Lock:
-    """
-    Class to lock a file, to prevent multiple processes from writing to it at
-    the same time.
-    """
-    def __init__(self, path):
-        self.path = path
-
-    def lock(self):
-        """
-        Lock the path. Returns True if the file was locked, otherwise returns
-        the PID of the processes that's keeping the lock.
-        """
-        other_pid = self.is_locked()
-        if other_pid:
-            return other_pid
-            #raise Exception("Process already running under PID {}".format(other_pid))
-
-        our_pid = os.getpid()
-        with open(self.path, 'w') as pidfile:
-            pidfile.write(str(our_pid))
-            pidfile.flush()
-
-        return True
-
-    def unlock(self):
-        os.unlink(self.path)
-
-    def is_locked(self):
-        """
-        Return `False` if process not yet locked. Return the PID of the other
-        process if it is locked.
-        """
-        if not os.path.exists(self.path):
-            return False
-
-        with open(self.path, 'r') as pidfile:
-            try:
-                pid = int(pidfile.read().strip())
-                assert pid != 0
-            except Exception:
-                # Something's wrong with the pidfile. Remove it
-                unlock(self.path)
-                return False
-
-            if self._is_pid_running(pid):
-                return pid
-            else:
-                # PID isn't running, but the lock file was still present. Maybe the
-                # process crashed? Remove PID file and pretend it wasn't locked.
-                self.unlock()
-                return False
-
-    def _is_pid_running(self, pid):
-        try:
-            os.kill(pid, 0)
-        except OSError as err:
-            if err.errno == errno.ESRCH:
-                return False
-            elif err.errno == errno.EPERM:
-                return True
-            else:
-                # According to "man 2 kill" possible error values are
-                # (EINVAL, EPERM, ESRCH)
-                raise
-        else:
-            return True
 
 
 class MonPy:
