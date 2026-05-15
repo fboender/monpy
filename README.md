@@ -155,6 +155,22 @@ Output example:
 
 # How-to
 
+## Run check at specific time
+
+MonPy is designed to run checks periodically, not at a specific time. However,
+you can schedule a check to run every minute, and check the time manually:
+
+    import datetime
+    
+    @monpy.check(minutely, minutely)
+    def test_specific_time():
+        now = datetime.datetime.now()
+        if now.hour != 7 or now.minute != 0:
+            # Only run at 07:00
+            return
+
+        ...
+
 ## Include checks from other file
 
 If you'd like to structure your checks over multiple files, you can do so
