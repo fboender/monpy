@@ -70,9 +70,11 @@ class Check:
             self.logger.exception(err)
             traceback.print_exc()
 
-        if self.alerted is False and "alert_count" in self.state:
-            # Check did not alert. Reset alert_count
-            self.state.pop("alert_count")
+        if self.alerted is False:
+            # No alerts during this check. Reset alert_count for all alerts
+            for alert_ident, alert_state in self.state["alerts"].items():
+                if "alert_count" in alert_state:
+                    alert_state.pop("alert_count")
 
         self.state["last_run_end"] = int(time.time())
 
@@ -112,13 +114,6 @@ class Check:
         if ident is None:
             ident = "_"
 
-        # Don't alert until `alert_after` alerts
-        self.alerted = True  # So we can clear alert count in run() if not alerted
-        self.state["alert_count"] = self.state.get("alert_count", 0) + 1
-        if self.state["alert_count"] < self.alert_after:
-            self.logger.info("Not alerting for '%s' because alert count not reached (%s/%s)", self.name, self.state["alert_count"], self.alert_after)
-            return
-
         if alerter is None:
             alerter = self.alerter
 
@@ -130,6 +125,19 @@ class Check:
         }
         alert_state = self.state["alerts"].setdefault(ident, default_alert_state)
         alert_state["time_seen"] = now
+
+        # Don't alert until `alert_after` alerts
+        self.alerted = True  # So we can clear alert count in run() if not alerted
+        alert_state["alert_count"] = alert_state.get("alert_count", 0) + 1
+        if alert_state["alert_count"] < self.alert_after:
+            self.logger.info(
+                "Not alerting for '%s.%s' because alert count not reached (%s/%s)",
+                self.name,
+                ident,
+                alert_state["alert_count"],
+                self.alert_after
+            )
+            return
 
         if self.no_alert is True:
             self.logger.info(
