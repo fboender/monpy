@@ -213,7 +213,7 @@ for alert in alerts:
         <tr class="{alert['active']}">
             <td class="check_name">{alert['check_name']}</td>
             <td class="nowrap">{datetime.fromtimestamp(alert['time_seen'])}</td>
-            <td>{alert['msg']}</td>
+            <td>{alert['msg'].replace('\\n', '<br>')}</td>
         </tr>
     """)
 %}
