@@ -141,8 +141,9 @@ class Check:
 
         if self.no_alert is True:
             self.logger.info(
-                "Not sending alert (--no-alert) for '%s': %s",
+                "Not sending alert (--no-alert) for '%s.%s': %s",
                 self.name,
+                ident,
                 msg
             )
             return
@@ -153,8 +154,9 @@ class Check:
 
         if not self.no_suppress and elapsed < self.alert_interval:
             self.logger.info(
-                "Supressing alert for '%s'. Alert interval (%ss) not reached (%ss elapsed). Alert: %s",
+                "Supressing alert for '%s.%s'. Alert interval (%ss) not reached (%ss elapsed). Alert: %s",
                 self.name,
+                ident,
                 self.alert_interval,
                 elapsed,
                 msg
@@ -163,15 +165,17 @@ class Check:
 
         if alerter is None:
             self.logger.error(
-                "Not sending alert (no alerter configured) for '%s': %s",
+                "Not sending alert (no alerter configured) for '%s.%s': %s",
                 self.name,
+                ident,
                 msg
             )
             return
 
         self.logger.warning(
-            "Sending alert (%s): %s",
+            "Sending alert (%s.%s): %s",
             self.name,
+            ident,
             msg
         )
         alerter.alert(msg, self.name)
