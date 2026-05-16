@@ -358,11 +358,11 @@ def nftables_default_policy():
             ident="ipv6"
         )
 
-@monpy.check(minutely * 5, hourly)
+@monpy.check(minutely * 5, hourly, alert_after=2)
 def listening_ports():
     """
     Check all local ports that are listening on external (all) interfaces
-    against a allowlist
+    against an allowlist
     """
     listen_ports = []
 
