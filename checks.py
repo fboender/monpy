@@ -463,10 +463,15 @@ def log_nginx_bruteforce():
 
     sqlite_path = os.path.join(os.path.dirname(monpy.state_path), "buckets.sqlite3")
     bucket = Bucket(sqlite_path, "log_nginx_bruteforce")
+    banned_this_check = []
     for log_path in LOG_NGINX_FILES:
         for request in collectors.log_watch(log_path, monpy, re_nginx):
             # Ignore based on IP
             if request["ip"] in LOG_NGINX_IGNORE_IPS:
+                continue
+
+            # Already banned this check
+            if request['ip'] in banned_this_check:
                 continue
 
             # Only ban for certain request statusses
@@ -483,6 +488,8 @@ def log_nginx_bruteforce():
                     ["nft", "add", "element", "ip", "filter", "ip_block", f"{{ {request['ip']} }}"],
                     check=True
                 )
+
+                banned_this_check.append(request['ip'])
 
                 msg = f"Banned IP '{request['ip']}' due to suspicious requests"
                 monpy.current_check.logger.warning(msg)
