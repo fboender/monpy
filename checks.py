@@ -484,10 +484,13 @@ def log_nginx_bruteforce():
                     check=True
                 )
 
+                msg = f"Banned IP '{request['ip']}' due to suspicious requests"
+                monpy.current_check.logger.warning(msg)
                 monpy.alert(
-                    f"Banned IP '{request['ip']}' due to suspicious requests",
+                    msg,
                     ident=request["ip"]
                 )
+
     # Forget IP after not seeing it for 4 hours
     bucket.vacuum(60 * 60 * 4)
     bucket.commit()
