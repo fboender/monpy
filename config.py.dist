@@ -89,3 +89,13 @@ LISTEN_PORT_PROC_ALLOWED = {
     8080: "/usr/bin/docker-proxy",
     9091: "/usr/bin/transmission-daemon",
 }
+
+# Check these nginx log files for brute force attemps
+LOG_NGINX_FILES = [
+    "/var/log/nginx/access.log",
+]
+LOG_NGINX_IGNORE_IPS = [
+    "10.20.30.40",
+]
+# Ban after 10 invalid / suspicious requests
+LOG_NGINX_BAN_CNT = 10

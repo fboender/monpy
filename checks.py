@@ -17,18 +17,32 @@ import os
 import sys
 import stat
 import datetime
+import subprocess
 
 from monpy import *
 from config import *
 from alerters import Pushover
 import collectors
 from reporters import HTML
+from tools import Bucket
 
 
 minutely = 60
 hourly = 60 * 60
 daily = 60 * 60 * 24
 weekly = 60 * 60 * 24 * 7
+
+re_nginx = \
+     r"^" \
+     r"(?P<ip>\d+\.\d+\.\d+\.\d+) -\s+" \
+     r"(?P<remote_user>.*?)\s+" \
+     r"\[(?P<date>.*?)\] " \
+     r"\"(?P<request>.*?)\" " \
+     r"(?P<status>\d+) " \
+     r"(?P<body_bytes_sent>\d+) " \
+     r"\"(?P<referer>.*?)\" " \
+     r"\"(?P<user_agent>.*?)\"" \
+     r"$"
 
 
 alerter = Pushover(PUSHOVER_USER_TOKEN, PUSHOVER_APP_TOKEN)
@@ -435,6 +449,48 @@ def reboot_required():
         monpy.alert(
             f"A reboot is required after updating packages."
         )
+
+#############################################################################
+# Log monitoring
+#############################################################################
+@monpy.check(minutely, minutely)
+def log_nginx_bruteforce():
+    """
+    Check nginx logs for brute force attacks
+    """
+    if not LOG_NGINX_FILES:
+        return
+
+    sqlite_path = os.path.join(os.path.dirname(monpy.state_path), "buckets.sqlite3")
+    bucket = Bucket(sqlite_path, "log_nginx_bruteforce")
+    for log_path in LOG_NGINX_FILES:
+        for request in collectors.log_watch(log_path, monpy, re_nginx):
+            # Ignore based on IP
+            if request["ip"] in LOG_NGINX_IGNORE_IPS:
+                continue
+
+            # Only ban for certain request statusses
+            if request["status"] not in ("400", "401", "403", "404", "406", "408", "502"):
+                continue
+
+            # Increase counter for this ip
+            ip_cnt = bucket.get(request["ip"], 0)
+            bucket.set(request["ip"], ip_cnt + 1, commit=False)
+
+            if ip_cnt >= LOG_NGINX_BAN_CNT:
+                # Ban IP by adding it to the nft "ip_block" set
+                proc = subprocess.run(
+                    ["nft", "add", "element", "ip", "filter", "ip_block", f"{{ {request['ip']} }}"],
+                    check=True
+                )
+
+                monpy.alert(
+                    f"Banned IP '{request['ip']}' due to suspicious requests",
+                    ident=request["ip"]
+                )
+    # Forget IP after not seeing it for 4 hours
+    bucket.vacuum(60 * 60 * 4)
+    bucket.commit()
 
 #############################################################################
 # Misc stuff
