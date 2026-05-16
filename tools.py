@@ -5,6 +5,7 @@ import sqlite3
 import datetime
 
 
+
 def kb_to_bytes(s):
     return int(s[:-3]) * 1024
 
@@ -142,7 +143,7 @@ class Bucket:
         """
         Set value of `key` to `value`
         """
-        now = datetime.datetime.now(datetime.UTC).isoformat()
+        now = datetime.datetime.now(datetime.timezone.utc).isoformat()
         cur = self.conn.cursor()
         cur.execute(
             """
@@ -160,7 +161,7 @@ class Bucket:
         """
         Remove stale keys not seen in more than `seconds`
         """
-        now = datetime.datetime.now(datetime.UTC)
+        now = datetime.datetime.now(datetime.timezone.utc)
         delta = datetime.timedelta(seconds=seconds)
         cut_off = (now - delta).isoformat()
         cur = self.conn.cursor()
