@@ -368,6 +368,7 @@ class MonPy:
             name,
             {
                 "last_run_start": 0,
+                "last_run_end": 0,
                 "alerts": {},
                 "history": {},
             }
