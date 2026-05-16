@@ -116,7 +116,7 @@ class Check:
         self.state["check_interval"] = check_interval
         self.state["alert_interval"] = alert_interval
 
-        self.logger = logging.getLogger("monpy.check")
+        self.logger = logging.getLogger(f"monpy.check.{self.name}")
 
     def run(self):
         """
