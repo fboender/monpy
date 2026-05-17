@@ -43,17 +43,15 @@ def apt_upgrades(update=True):
     )
 
     updates = []
-    #for line in res.stdout.splitlines():
-    with open("/home/fboender/aap", "r") as fh:
-        for line in fh.readlines():
-            if not line.startswith("Inst "):
-                continue
+    for line in res.stdout.splitlines():
+        if not line.startswith("Inst "):
+            continue
 
-            match = re.match(re_pkg, line)
-            update = match.groupdict()
-            updates.append(update)
+        match = re.match(re_pkg, line)
+        update = match.groupdict()
+        updates.append(update)
 
-        return updates
+    return updates
 
 def reboot_required():
     """
