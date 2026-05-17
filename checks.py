@@ -336,6 +336,9 @@ def executables_in_tmp():
             # executables (such as 'borg'), but that's tricky for now.
             if "_MEI" in file["path"]:
                 continue
+            # Pyinfra may leave temp executables behind
+            if file["path"].startswith("/tmp/pyinfra-sudo-askpass-"):
+                continue
 
             monpy.alert(
                 f"Executable found in temp dir: {file['path']}",
