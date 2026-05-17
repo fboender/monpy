@@ -360,6 +360,10 @@ class MonPy:
         self.locker.unlock()
 
     def register(self, func, check_interval, alert_interval=0, alert_after=1):
+        """
+        Register a check function. It is preferred to use the MonPy.check()
+        decorator instead of this method, unless you want to do special things.
+        """
         name = func.__name__
         desc = ""
         if func.__doc__ is not None:
