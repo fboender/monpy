@@ -6,41 +6,54 @@ import os
 logger = logging.getLogger("monpy." + __name__)
 
 re_pkg = \
-    r"^" \
-    r"(?P<name>.*?)/" \
-    r"(?P<origins>.*?) " \
-    r"(?P<upgrade_to>.*?) " \
-    r"(?P<architecture>.*?) " \
-    r"\[upgradable from: (?P<upgrade_from>.*?)\]" \
+    r"^Inst " \
+    r"(?P<name>.*?) " \
+    r"\(" \
+    r"(.*?) " \
+    r"(?P<origin>.*?) " \
     r".*" \
     r"$"
 
 def apt_upgrades(update=True):
     """
     Return info on upgradable packages.
+
+        [
+            {
+                'name': 'linux-modules-6.17.0-29-generic',
+                'origin': 'Ubuntu:24.04/noble-updates'
+            },
+            ...
+        ]
+
     """
     if update is True:
-        logger.debug("Running: apt -qqq update")
+        cmd = ["apt-get", "-qqq", "update"]
+        logger.debug("Running: %s", " ".join(cmd))
         subprocess.run(
-            ["apt", "-qqq", "update"],
+            cmd,
             check=True
         )
 
     res = subprocess.run(
-        ["apt", "-qqq", "list", "--upgradable"],
+        ["apt-get", "-qqq", "upgrade", "--dry-run"],
         capture_output=True,
         text=True,
         check=True
     )
 
     updates = []
-    for line in res.stdout.splitlines():
-        match = re.match(re_pkg, line)
-        update = match.groupdict()
-        update["origins"] = update["origins"].split(",")
-        updates.append(update)
+    #for line in res.stdout.splitlines():
+    with open("/home/fboender/aap", "r") as fh:
+        for line in fh.readlines():
+            if not line.startswith("Inst "):
+                continue
 
-    return updates
+            match = re.match(re_pkg, line)
+            update = match.groupdict()
+            updates.append(update)
+
+        return updates
 
 def reboot_required():
     """

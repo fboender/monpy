@@ -430,12 +430,15 @@ if SCAN_DEVICES_NETWORK is not False:
 def apt_security_upgrades_available():
     """
     Notify about security upgrades being available.
+
+    NOTE that third-party repositories may push security updates as regular
+    updates, which won't be shown here.
     """
     upgrades = collectors.apt_upgrades()
     security_upgrades = []
     for upgrade in upgrades:
-        if len([origin for origin in upgrade["origins"] if "security" in origin]) > 0:
-            security_upgrades.append(f"- {upgrade['name']} (to {upgrade['upgrade_to']})")
+        if len([origin for origin in upgrade["origin"] if "security" in origin]) > 0:
+            security_upgrades.append(f"- {upgrade['name']}")
 
     if security_upgrades:
         msg = "Security upgrades available:\n\n"
