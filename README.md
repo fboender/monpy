@@ -6,6 +6,10 @@ MonPy provides tooling to easily write checks, keep state and history and
 generate alerts. Various useful data [collectors](#collectors) are provided
 out-of-the-box.
 
+Rather than calling some commandline tool or binary, with MonPy you write a
+Python script that defines what and how to monitor things. You run this script
+to actually perform the monitoring.
+
 See [`checks.py`](checks.py) for examples of what's possible and how to write
 checks.
 
@@ -28,7 +32,7 @@ checks.
 
 cronjob:
 
-    * * * * * cd /opt/monpy && ./checks.py
+    * * * * * cd /opt/monpy && ./checks.py -v --log-file /var/log/monpy.log
 
 Example ouput (`-vvv` verbose mode):
 

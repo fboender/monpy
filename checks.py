@@ -32,6 +32,7 @@ hourly = 60 * 60
 daily = 60 * 60 * 24
 weekly = 60 * 60 * 24 * 7
 
+# Nginx log file regexp, used by 'log_nginx_bruteforce' check
 re_nginx = \
      r"^" \
      r"(?P<ip>\d+\.\d+\.\d+\.\d+) -\s+" \
@@ -130,7 +131,6 @@ def proc_with_high_mem():
                 f"Process '{process['exe']}' (pid: {process['pid']}) uses more than {PROC_HIGH_MEM_MB} MB of memory ({mem_usage_gb:.2f} MM)",
                 ident=process["pid"]
             )
-
 
 #############################################################################
 # Docker
@@ -261,6 +261,9 @@ def ssl_expire():
                 ident=f"{host}:{port}"
             )
 
+#############################################################################
+# Server problem and error reporting monitoring
+#############################################################################
 @monpy.check(hourly, daily)
 def mail_in_spool():
     """
@@ -277,7 +280,8 @@ def mail_in_spool():
 @monpy.check(daily, daily)
 def cron_mailto():
     """
-    Check that crontabs contain a MAILTO so we're notified of problems
+    Check that crontabs contain a MAILTO so we're notified of problems when
+    cronjobs fail
     """
     files = []
     files.append(collectors.file("/etc/crontab"))
@@ -304,7 +308,7 @@ def systemd_failed_units():
         )
 
 #############################################################################
-# Security scans
+# Security / Indicator of Compromise scans
 #############################################################################
 @monpy.check(daily, daily)
 def high_uptime():
@@ -473,7 +477,19 @@ def reboot_required():
 @monpy.check(minutely, minutely)
 def log_nginx_bruteforce():
     """
-    Check nginx logs for brute force attacks
+    Check nginx logs for brute force attacks and ban the IP using nftables if
+    an attack is detected. This requires your nftables config to have an
+    `ip_block` set that bans IPs:
+
+        table ip filter {
+            set ip_block {
+                type ipv4_addr
+            }
+
+            chain incoming {
+                ip saddr @ip_block drop
+            }
+        }
     """
     if not LOG_NGINX_FILES:
         return
