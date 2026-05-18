@@ -229,6 +229,7 @@ def log_watch(path, monpy, parse_regex=None, from_top=False):
         file_info = file(path)
         # FIXME: Remove from state
     except FileNotFoundError:
+        logger.warning("Log file not found: '%s'. Continuing with next log file", path)
         return
 
     state = monpy.current_check.state
