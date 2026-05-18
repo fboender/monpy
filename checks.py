@@ -292,6 +292,17 @@ def cron_mailto():
                 ident=file["path"],
             )
 
+@monpy.check(minutely * 5, daily)
+def systemd_failed_units():
+    """
+    Check for systemd units / services in failed state
+    """
+    for unit in collectors.systemctl_failed():
+        monpy.alert(
+            f"Systemd unit '{unit['unit']}' failed.",
+            ident=unit["unit"]
+        )
+
 #############################################################################
 # Security scans
 #############################################################################
