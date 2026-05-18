@@ -225,6 +225,7 @@ def log_watch(path, monpy, parse_regex=None, from_top=False):
     the file.
     """
     logger = logging.getLogger("monpy." + __name__)
+    logger.debug("Inspecting log file '%s'", path)
     try:
         file_info = file(path)
         # FIXME: Remove from state
