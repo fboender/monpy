@@ -422,9 +422,9 @@ class MonPy:
         status = self.state.setdefault("status", {})
         status["last_run_start"] = int(time.time())
 
-        seen_checks = []
+        #seen_checks = []     TEMP DISABLED, SEE BELOW
         for check in self.checks:
-            seen_checks.append(check.name)
+            #seen_checks.append(check.name)  TEMP DISABLED, SEE BELOW
 
             if self.args.check is not None and self.args.check != check.name:
                 self.logger.debug("Not running check '%s' due to argument '%s'", check.name, self.args.check)
@@ -441,9 +441,11 @@ class MonPy:
         status["last_run_end"] = int(time.time())
 
         # Clean state
-        del_checks = [name for name in self.state["checks"].keys() if name not in seen_checks]
-        for del_check in del_checks:
-            self.state["checks"].pop(del_check)
+        # FIXME: Add a grace period based on last_run_start and check_interval,
+        # otherwise it'll delete all checks immediately, even during testing.
+        #del_checks = [name for name in self.state["checks"].keys() if name not in seen_checks]
+        #for del_check in del_checks:
+        #    self.state["checks"].pop(del_check)
 
         self._state_save()
 
