@@ -60,18 +60,18 @@ def http(url,
 
         {
             "status": 200,                 # HTTP status code
-            "reason": "<ERROR REASON>",    # Error reason if error occurred
             "body": "<DECODED_BODY_TEXT>", # Body
             "headers": {},                 # Server response headers
-            "response_sec": 0.434          # Response time (seconds)
+            "response_sec": 0.434,         # Response time (seconds)
+            "reason": "<ERROR REASON>",    # Error reason if error occurred
         }
-
     """
     result = {
         "status": 0,
-        "reason": "",
         "body": "",
         "headers": "",
+        "response_sec": -1,
+        "reason": "",
     }
 
     headers = {
@@ -91,11 +91,11 @@ def http(url,
         url,
         method=method,
         data=data,
-        headers=headers
+        headers=headers,
     )
 
     try:
-        with urlopen(req) as response:
+        with urlopen(req, timeout=timeout) as response:
             result.update(
                 {
                     "status": response.status,
@@ -110,6 +110,13 @@ def http(url,
                 "body": err.read().decode(),
                 "reason": err.reason,
                 "headers": dict(err.headers),
+            }
+        )
+    except TimeoutError as err:
+        result.update(
+            {
+                "status": -1,
+                "reason": str(err)
             }
         )
 
