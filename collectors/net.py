@@ -114,7 +114,7 @@ def http(url,
         )
 
     end = datetime.datetime.now()
-    response_sec = (end - start).total_seconds() * 1000
+    response_sec = (end - start).total_seconds()
     result["response_sec"] = response_sec
 
     logger.debug("Response status: %s", result["status"])
