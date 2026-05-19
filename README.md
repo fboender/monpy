@@ -1,3 +1,18 @@
+<!-- TOC -->
+* [About](#about)
+* [Usage](#usage)
+* [MonPy class](#monpy-class)
+* [Checks](#checks)
+* [Collectors](#collectors)
+* [Alerters](#alerters)
+* [Reporters](#reporters)
+* [How-to](#how-to)
+    * [Run check at specific time](#run-check-at-specific-time)
+    * [Include checks from other file](#include-checks-from-other-file)
+<!-- EOTOC -->
+
+# About
+
 Monitoring tool where you write checks in Python instead of some declarative
 markup language. Simple, fast and powerful. No external libraries required,
 only a Python installation.
@@ -97,6 +112,9 @@ total of 5 minutes) is higher than 0.9. If so, it sends an alert.
                 f"Average load of last 5 minutes higher than 0.9 ({avg})"
             )
 
+See [`checks.py`](checks.py) for more examples of what's possible and how to
+write checks.
+
 # Collectors
 
 Various [collectors](collectors/) are provided:
@@ -114,6 +132,7 @@ Various [collectors](collectors/) are provided:
 * [`mounts`](collectors/mounts.py): Mount point information, including free / used
   disk space
 * [`uptime`](collectors/uptime.py): System uptime information
+* [`systemd`](collectors/systemd.py): Systemd service / unit status
 * [`nftables`](collectors/nftables.py): nftable firewall rules
 * [`net`](collectors/net.py): TCP connections, HTTP calls, SSL certificate
   information, local ports (netstat / ss) and network scanning (devices)
