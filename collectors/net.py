@@ -1,6 +1,6 @@
 import logging
 import socket
-from urllib.request import Request, urlopen
+from urllib.request import Request, urlopen, HTTPError
 import base64
 import socket
 import ssl
@@ -60,12 +60,20 @@ def http(url,
 
         {
             "status": 200,                 # HTTP status code
+            "reason": "<ERROR REASON>",    # Error reason if error occurred
             "body": "<DECODED_BODY_TEXT>", # Body
             "headers": {},                 # Server response headers
             "response_sec": 0.434          # Response time (seconds)
         }
 
     """
+    result = {
+        "status": 0,
+        "reason": "",
+        "body": "",
+        "headers": "",
+    }
+
     headers = {
         "User-Agent": "monpy/1.0",
     }
@@ -85,17 +93,33 @@ def http(url,
         data=data,
         headers=headers
     )
+
+    try:
+        with urlopen(req) as response:
+            result.update(
+                {
+                    "status": response.status,
+                    "body": response.read().decode(),
+                    "headers": dict(response.headers),
+                }
+            )
+    except HTTPError as err:
+        result.update(
+            {
+                "status": err.status,
+                "body": err.read().decode(),
+                "reason": err.reason,
+                "headers": dict(err.headers),
+            }
+        )
+
     end = datetime.datetime.now()
     response_sec = (end - start).total_seconds() * 1000
+    result["response_sec"] = response_sec
 
-    with urlopen(req) as response:
-        logger.debug("Response status: %s", response.status)
-        return {
-            "status": response.status,
-            "body": response.read().decode(),
-            "headers": dict(response.headers),
-            "response_sec": response_sec
-        }
+    logger.debug("Response status: %s", result["status"])
+
+    return result
 
 def ssl_cert(host, port=443):
     """
