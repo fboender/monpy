@@ -148,6 +148,10 @@ if os.path.exists("/var/lib/docker/"):
                 # No health check
                 continue
 
+            if container["State"]["Status"] == "exited" and container["State"]["ExitCode"] == 0:
+                # Gracefully stopped
+                continue
+
             health_status = container["State"]["Health"]["Status"]
 
             if health_status != "healthy":
