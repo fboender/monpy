@@ -236,13 +236,21 @@ def http_body():
     Check sites and make sure they're responding with the right data
     """
     for check in HTTP_BODY_CHECKS:
-        url, required_status, found_in_body = check
+        url, required_status, min_response_time, found_in_body = check
         res = collectors.http(url)
+
         if res["status"] != required_status:
             monpy.alert(
-                f"URL '{url} returned status {res['status']}, while {required_status} was expected'",
+                f"URL '{url} returned status {res['status']}, while {required_status} was expected ({res['reason']})'",
                 ident=f"status_{url}"
             )
+
+        if res["response_sec"] > min_response_time:
+            monpy.alert(
+                f"URL '{url} responded slower than {min_response_time} seconds ({res['response_sec']} seconds)",
+                ident=f"slow_{url}"
+            )
+
         if found_in_body not in res["body"]:
             monpy.alert(
                 f"URL '{url} response body didn't contain required text '{found_in_body}'",
