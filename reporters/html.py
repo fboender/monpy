@@ -23,6 +23,10 @@ from datetime import datetime, timedelta
 <meta name="description" content="">
 <meta name="author" content="">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+{%
+    if auto_refresh > 0:
+        print(f"""<meta http-equiv="refresh" content="{auto_refresh}">""")
+%}
 <style>
     /* reset css */
     html, body, div, span, applet, object, iframe,
@@ -298,8 +302,9 @@ def human_time(secs):
 
 
 class HTML:
-    def __init__(self, out_path="/var/lib/monpy/report.html"):
+    def __init__(self, out_path="/var/lib/monpy/report.html", auto_refresh=60):
         self.out_path = out_path
+        self.auto_refresh = auto_refresh
 
     def render(self, state):
         now = datetime.datetime.now()
@@ -352,6 +357,7 @@ class HTML:
                 "hostname": fqdn,
                 "last_run_start": last_run_start,
                 "last_run_end": last_run_end,
+                "auto_refresh": self.auto_refresh,
                 "checks": checks,
                 "alerts": sorted(alerts, key=lambda d: d['time_seen'], reverse=True)
             }

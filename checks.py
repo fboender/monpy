@@ -47,7 +47,7 @@ re_nginx = \
 
 
 alerter = Pushover(PUSHOVER_USER_TOKEN, PUSHOVER_APP_TOKEN)
-reporter = HTML(out_path="/var/lib/monpy/report.html")
+reporter = HTML(out_path="/var/lib/monpy/report.html", auto_refresh=60)
 monpy = MonPy(alerter=alerter, reporter=reporter)
 
 #############################################################################
