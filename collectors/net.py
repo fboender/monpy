@@ -112,7 +112,7 @@ def http(url,
                 "headers": dict(err.headers),
             }
         )
-    except TimeoutError as err:
+    except (ConnectionRefusedError, TimeoutError) as err:
         result.update(
             {
                 "status": -1,
