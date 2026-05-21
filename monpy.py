@@ -136,7 +136,7 @@ class Check:
             self.func()
         except Exception as err:
             return_value = err
-            self.logger.exception(err)
+            self.logger.exception("Exception while running check '%s': %s", self.name, err)
             traceback.print_exc()
 
         if self.alerted is False:
