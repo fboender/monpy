@@ -454,22 +454,27 @@ if SCAN_DEVICES_NETWORK is not False:
                 )
 
 @monpy.check(daily, daily)
-def apt_security_upgrades_available():
+def apt_security_updates_available():
     """
-    Notify about security upgrades being available.
+    Notify about security updates being available.
 
     NOTE that third-party repositories may push security updates as regular
     updates, which won't be shown here.
     """
-    upgrades = collectors.apt_upgrades()
-    security_upgrades = []
-    for upgrade in upgrades:
-        if len([origin for origin in upgrade["origin"] if "security" in origin]) > 0:
-            security_upgrades.append(f"- {upgrade['name']}")
+    security_updates = [
+        update
+        for update in collectors.apt_updates()
+        if update["security"] is True
+    ]
 
-    if security_upgrades:
-        msg = "Security upgrades available:\n\n"
-        msg += "\n".join(security_upgrades)
+    if security_updates:
+        msg = "Security updates available:\n\n"
+        msg += "\n".join(
+            [
+                f" - {update['name']} (from {update['cur_version']} to {update['new_version']})"
+                for update in security_updates
+            ]
+        )
         monpy.alert(msg)
 
 @monpy.check(hourly, daily)
