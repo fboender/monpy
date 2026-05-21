@@ -85,7 +85,7 @@ def reboot_required():
     Debian-derived systems touch /run/reboot-required when a package indicates
     that the system needs to be rebooted for the upgrade to fully take effect.
 
-    Returns `True` if the system requires a reboot.
+    Returns `True` if the system requires a reboot. Otherwise, returns False.
     """
     if os.path.exists("/run/reboot-required") or os.path.exists("/var/run/reboot-required"):
         return True

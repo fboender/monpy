@@ -29,8 +29,18 @@ TCP_STATES = {
 
 def tcp_connect(host, port, timeout=3, raise_exception=False):
     """
-    Test a TCP connection to a port. If `raise_exception` is set to True, the
-    exception (if any) is raised.
+    Test a TCP connection to a port.
+
+    `host` is the hostname, domainname or IP for the connection.
+
+    `port` is the port to attempt to connect to.
+
+    `timeout` sets the timeout for the connection. If set to `None`, timeout is
+    disabled.
+
+    If `raise_exception` is set to True, the exception (if any) is raised.
+
+    Returns `True` if the connection was established or `False` if not.
     """
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.settimeout(timeout)
@@ -131,6 +141,30 @@ def http(url,
 def ssl_cert(host, port=443):
     """
     Fetch information about SSL certificate
+
+    Returns:
+
+        {
+            "expires_days": 73,
+            "issuer": {
+                "commonName": "E7",
+                "countryName": "US",
+                "organizationName": "Let"s Encrypt"
+            },
+            "not_after": "Aug  2 11:22:02 2026 GMT",
+            "not_after_dt": datetime.datetime(2026, 8, 2, 11, 22, 2),
+            "not_before": "May  4 11:22:03 2026 GMT",
+            "not_before_dt": datetime.datetime(2026, 5, 4, 11, 22, 3),
+            "san": {
+                "DNS": "electricmonk.nl"
+            },
+            "serial_number": "05FA4E73CB379EA3F9234516715B11393C34",
+            "subject": {
+                "commonName": "example.com"
+            },
+            "version": 3
+        }
+
     """
     def flatten_name(x):
         return {k: v for tup in x for k, v in tup}
@@ -214,6 +248,43 @@ def _netstat_parse_proc(path, inode_map, ipv6=False):
     return conns
 
 def netstat():
+    """
+    Return information about network connections
+
+    Returns:
+
+        [
+            {
+                "family": "ipv4",
+                "local": ["0.0.0.0", 443],
+                "remote": ["0.0.0.0", 0],
+                "state": "LISTEN",
+                "tx_queue": 0,
+                "rx_queue": 0,
+                "timer_active": 0,
+                "timeout": 0,
+                "retransmits": 0,
+                "uid": 0,
+                "inode": 15550261,
+                "pids": [970450, 3611074],
+                "processes": [
+                    {
+                        "pid": 970450,
+                        "cmdline": "nginx: master process /usr/sbin/nginx -g daemon on; master_process on;",
+                        "cwd": "/",
+                        "exe": "/usr/sbin/nginx"
+                    },
+                    {
+                        "pid": 3611074,
+                        "cmdline": "nginx: worker process",
+                        "cwd": "/",
+                        "exe": "/usr/sbin/nginx"
+                    }
+                ]
+            },
+            ...
+        ]
+    """
     inode_map = inode_pid_map()
     return (
         _netstat_parse_proc("/proc/net/tcp", inode_map, ipv6=False) +
@@ -222,7 +293,7 @@ def netstat():
 
 def devices(network):
     """
-    Discover hosts on network using nmap
+    Discover devices on network using nmap
 
     Yields:
 
