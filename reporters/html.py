@@ -287,18 +287,30 @@ def tpl(tpl, vars={}):
         cur_pos += 1
     return out
 
-def human_time(secs):
+
+def human_time(secs, inc_months=False, max_res=None):
     """
     Return a human-readable representation of elapsed time.
     """
-    if int(secs) == 0:
-        return "0s"
-    sec = datetime.timedelta(seconds=int(secs))
-    d = datetime.datetime(1, 1, 1) + sec
-    k = ["%dd", "%dh", "%dm", "%ds"]
-    v = [d.day-1, d.hour, d.minute, d.second]
-    t = [k[i] % (v[i]) for i in range(len(k)) if v[i] > 0]
-    return ' '.join(t[:2])
+    mapping = [
+        ("y", True, 60 * 60 * 24 * 365),
+        ("mo", inc_months, 60 * 60 * 24 * 30),
+        ("d", True, 60 * 60 * 24),
+        ("h", True, 60 * 60),
+        ("m", True, 60),
+        ("s", True, 1)
+    ]
+
+    output = []
+    for suffix, include, seconds in mapping:
+        if include is False:
+            continue
+
+        v, secs = divmod(secs, seconds)
+        if v > 0:
+            output.append(f"{int(v)}{suffix}")
+
+    return " ".join(output[:max_res])
 
 
 class HTML:
