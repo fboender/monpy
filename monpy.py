@@ -97,13 +97,16 @@ class Check:
     This is not a class to derive checks from. Use the `MonPy.check` decorator
     for that.
     """
-    def __init__(self, name, func, desc, check_interval, alert_interval, alert_after, force, alerter, no_alert, no_suppress, state):
+    def __init__(self, name, func, desc, check_interval, alert_interval,
+                 alert_after, recheck_interval, force, alerter, no_alert,
+                 no_suppress, state):
         self.name = name
         self.func = func
         self.desc = desc
         self.check_interval = check_interval
         self.alert_interval = alert_interval
         self.alert_after = alert_after
+        self.recheck_interval = recheck_interval
         self.force = force              # Force run
         self.alerter = alerter          # Alerter class
         self.no_alert = no_alert        # Do not emmit alerts (--no-alert)
@@ -111,22 +114,39 @@ class Check:
         self.state = state
         self.alerted = False
 
-        # Save intervals in state. Purely informational
+        # Save intervals in state. Purely informational so that Reporters can
+        # use them
         self.state["desc"] = desc
         self.state["check_interval"] = check_interval
+        self.state["recheck_interval"] = recheck_interval
         self.state["alert_interval"] = alert_interval
 
         self.logger = logging.getLogger(f"monpy.check.{self.name}")
 
     def run(self):
         """
-        Run this check, if `check_interval` has been reached
+        Run this check, if `check_interval` has been reached. If
+        `recheck_interval` is specified, and there is an active alert, also run
+        the check when `recheck_interal` has been reached.
         """
         now = int(time.time())
         elapsed = now - self.state["last_run_start"]
+        check_interval_reached = elapsed >= self.check_interval
 
-        if self.force is False and elapsed < self.check_interval:
-            self.logger.debug("Not running check '%s', interval (%s) not reached (%s)", self.name, self.check_interval, elapsed)
+        # If `recheck_interval` is specified, and there is an active alert, run
+        # the check if `recheck_interval` has been reached.
+        recheck_interval_reached = False
+        if self.recheck_interval is not None and self.active_alerts():
+            recheck_interval_reached = elapsed >= self.recheck_interval
+
+        if self.force is False and not (check_interval_reached or recheck_interval_reached):
+            self.logger.debug(
+                "Not running check '%s', interval (%s, recheck=%s) not reached (%s)",
+                self.name,
+                self.check_interval,
+                self.recheck_interval,
+                elapsed
+            )
             return
 
         self.state["last_run_start"] = now
@@ -252,6 +272,16 @@ class Check:
         alert_state["time_sent"] = now
         alert_state["msg"] = msg
 
+    def active_alerts(self):
+        active_alerts = []
+        for alert in self.state["alerts"].values():
+            # If the last time an alert was seen was on or after the last time
+            # the check was run the alert is currently active
+            if alert["time_seen"] >= self.state["last_run_start"]:
+                active_alerts.append(alert)
+
+        return active_alerts
+
     def __repr__(self):
         return f"<{self.__class__.__name__} " \
                f"'{self.name}' " \
@@ -359,7 +389,8 @@ class MonPy:
             json.dump(self.state, fh)
         self.locker.unlock()
 
-    def register(self, func, check_interval, alert_interval=0, alert_after=1):
+    def register(self, func, check_interval, alert_interval=0, alert_after=1,
+                 recheck_interval=None):
         """
         Register a check function. It is preferred to use the MonPy.check()
         decorator instead of this method, unless you want to do special things.
@@ -384,6 +415,7 @@ class MonPy:
             check_interval,
             alert_interval,
             alert_after,
+            recheck_interval,
             self.args.force,
             self.alerter,
             self.args.no_alert,
@@ -393,7 +425,8 @@ class MonPy:
         self.checks.append(check)
         self.logger.debug("Registered '%s'", check)
 
-    def check(self, check_interval, alert_interval=0, alert_after=1):
+    def check(self, check_interval, alert_interval=0, alert_after=1,
+              recheck_interval=None):
         """
         Function decorator to register a function as a monitoring check.
 
@@ -410,7 +443,13 @@ class MonPy:
         `alert_after` is 2, an alert won't be sent for 10 minutes.
         """
         def register_wrapper(func):
-            self.register(func, check_interval, alert_interval, alert_after)
+            self.register(
+                func,
+                check_interval,
+                alert_interval=alert_interval,
+                alert_after=alert_after,
+                recheck_interval=recheck_interval
+            )
 
         return register_wrapper
 

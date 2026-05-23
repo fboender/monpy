@@ -551,7 +551,7 @@ def log_nginx_bruteforce():
 #############################################################################
 # Misc stuff
 #############################################################################
-@monpy.check(daily, daily)
+@monpy.check(daily, daily, recheck_interval=hourly)
 def git_repo_status():
     """
     Check for out-of-date git repositories
