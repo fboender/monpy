@@ -310,7 +310,7 @@ def human_time(secs, inc_months=False, max_res=None):
         if v > 0:
             output.append(f"{int(v)}{suffix}")
 
-    return " ".join(output[:max_res])
+    return " ".join(output[:max_res]) or "0s"
 
 
 class HTML:
