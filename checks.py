@@ -446,10 +446,11 @@ if SCAN_DEVICES_NETWORK is not False:
             if device["mac"] is None:
                 continue
 
+            # Alert only once by keeping the mac in monpy status
             if device["mac"] not in device_status:
                 device_status.append(device["mac"])
                 monpy.alert(
-                    f"New device found on network '{SCAN_DEVICES_NETWORK}': {device['ip']} (hostname={device['hostname']}, vendor={device['vendor']})",
+                    f"New device found on network '{SCAN_DEVICES_NETWORK}': {device['ip']} (hostname={device['hostname']}, vendor={device['vendor']}, mac={device['mac']})",
                     device["mac"]
                 )
 
