@@ -57,8 +57,10 @@ SCAN_DEVICES_NETWORK = False
 #SCAN_DEVICES_NETWORK = "192.168.1.0/24"
 
 # Check HTTP responses for correct HTTP status and presence of text in the body
+# Format:
+#   ("<URL>", <Expected response code>, <minimum response time (sec)>, <text expected in body>)
 HTTP_BODY_CHECKS = [
-    ("https://www.electricmonk.nl/log/", 200, "Programmer, DevOpper, Open Source enthusiast"),
+    ("https://www.electricmonk.nl/log/", 200, 2, "Programmer, DevOpper, Open Source enthusiast"),
 ]
 
 # Check SSL certs for expiration in X days
