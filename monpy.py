@@ -29,15 +29,34 @@ class Lock:
     def __init__(self, path):
         self.path = path
 
-    def lock(self):
+        self.logger = logging.getLogger("monpy.state")
+
+    def lock(self, wait=None):
         """
         Lock the path. Returns True if the file was locked, otherwise returns
         the PID of the processes that's keeping the lock.
+
+        If `wait` is specified, wait for `wait` seconds if locked and try
+        again. If still locked after that, fail.
         """
-        other_pid = self.is_locked()
-        if other_pid:
-            return other_pid
-            #raise Exception("Process already running under PID {}".format(other_pid))
+        while True:
+            other_pid = self.is_locked()
+            if not other_pid:
+                # Not locked
+                break
+            elif wait is None:
+                # Locked. Process already running under other PID. Don't try
+                # again.
+                return other_pid
+            else:
+                # Locked. Wait for `wait` seconds and try again
+                self.logger.info(
+                    "Lock file '%s' is locked. Waiting for %s seconds before trying again",
+                    self.path,
+                    wait
+                )
+                time.sleep(wait)
+                wait = None
 
         our_pid = os.getpid()
         with open(self.path, 'w') as pidfile:
@@ -291,10 +310,35 @@ class Check:
 
 
 class MonPy:
-    def __init__(self, alerter=None, reporter=None, state_path=STATE_PATH):
+    def __init__(self, alerter=None, reporter=None, state_path=STATE_PATH,
+                 lock_wait=None):
+        """
+        Main MonPy class that orchestrates the running of checks, alerting and
+        reporting.
+
+        If `alerter` is specified, MonPy will send alerts via that alerter. It
+        should be an instance of a class with an `alert()` method with
+        signature:
+
+            def alert(self, msg, check_name):
+                ...
+
+        If `reporter` is specified, MonPy will call it after a completed run.
+        If should be an instance of a class with a method with signature:
+
+            def render(self, state):
+                ...
+
+        If `state_path` is specified, that path will be used as the state file.
+        Otherwise the default will be used.
+
+        If `lock_wait` (int or float) is specified, MonPy will wait `lock_wait`
+        seconds and retry in case the state file is locked.
+        """
         self.alerter = alerter
         self.reporter = reporter
         self.state_path = state_path
+        self.lock_wait = lock_wait
 
         # Reference to currently running check (self.run()), so that the check
         # can call `monpy.history()` and `monpy.alert()` and we know which
@@ -340,9 +384,6 @@ class MonPy:
 
         self.args = parser.parse_args()
         self.checks = []
-        self.state_path_lock = f"{self.state_path}.lock"
-        self.locker = Lock(self.state_path_lock)
-        self.state = self._state_load()
 
         # Configure application logging
         loglevel = logging.CRITICAL - ((self.args.verbose + 1) * 10)
@@ -363,11 +404,15 @@ class MonPy:
         self.logger.setLevel(loglevel)
         self.logger.addHandler(handler)
 
+        self.state_path_lock = f"{self.state_path}.lock"
+        self.locker = Lock(self.state_path_lock)
+        self.state = self._state_load()
+
         if self.alerter is None:
             self.logger.error("No alerter configured. Alerts will not be sent")
 
     def _state_load(self):
-        locked = self.locker.lock()
+        locked = self.locker.lock(wait=self.lock_wait)
         if locked is not True:
             raise RuntimeError(f"'{self.state_path}' is locked by another instance. If this is wrong, remote the '{self.state_path_lock}' file.")
 
