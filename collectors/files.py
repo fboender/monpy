@@ -5,6 +5,7 @@ import errno
 import re
 import mmap
 import logging
+import hashlib
 
 
 file_types = {
@@ -290,3 +291,18 @@ def log_watch(path, monpy, parse_regex=None, from_top=False):
 
             # Register last position in log file in state
             log_state["pos"] = fh.tell()
+
+def checksum(path):
+    """
+    Generate sha256 hash of file contents.
+
+    You can do the same from the commandline with:
+
+        $ sha256sum ~/.bashrc
+        ee2565b9b0f2d10e566df1d2661acf638cace964dc89bd8ab339c69c144e0840  /home/fboender/.bashrc
+    """
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        while chunk := f.read(8192):
+            h.update(chunk)
+    return h.hexdigest()
