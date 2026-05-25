@@ -489,6 +489,16 @@ def reboot_required():
             f"A reboot is required after updating packages."
         )
 
+@monpy.check(hourly, hourly)
+def checksums():
+    for path, checksum in CHECKSUM_FILES:
+        if collectors.checksum(path) != checksum:
+            monpy.alert(
+                f"Checksum for '{path}' didn't match",
+                ident=path
+            )
+
+
 #############################################################################
 # Log monitoring
 #############################################################################

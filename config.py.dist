@@ -101,3 +101,9 @@ LOG_NGINX_IGNORE_IPS = [
 ]
 # Ban after 10 invalid / suspicious requests
 LOG_NGINX_BAN_CNT = 10
+
+# Check sum files (get'it?)
+# Format:
+#   (path, checksum)
+CHECKSUM_FILES = [
+]
