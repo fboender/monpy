@@ -140,6 +140,9 @@ class Check:
         self.state["recheck_interval"] = recheck_interval
         self.state["alert_interval"] = alert_interval
 
+        # Register when we last saw this check (even if it didn't run)
+        self.state["last_seen"] = int(time.time())
+
         self.logger = logging.getLogger(f"monpy.check.{self.name}")
 
     def run(self):
@@ -311,7 +314,7 @@ class Check:
 
 class MonPy:
     def __init__(self, alerter=None, reporter=None, state_path=STATE_PATH,
-                 lock_wait=None):
+                 lock_wait=None, prune_check_age=86400*2):
         """
         Main MonPy class that orchestrates the running of checks, alerting and
         reporting.
@@ -334,11 +337,16 @@ class MonPy:
 
         If `lock_wait` (int or float) is specified, MonPy will wait `lock_wait`
         seconds and retry in case the state file is locked.
+
+        `prune_check_age` is the number of seconds after which the state of
+        unseen checks are pruned.
         """
         self.alerter = alerter
         self.reporter = reporter
         self.state_path = state_path
         self.lock_wait = lock_wait
+        self.prune_check_age = prune_check_age
+        self.checks = []
 
         # Reference to currently running check (self.run()), so that the check
         # can call `monpy.history()` and `monpy.alert()` and we know which
@@ -383,7 +391,6 @@ class MonPy:
                             help="Check to run. If not given, runs all checks")
 
         self.args = parser.parse_args()
-        self.checks = []
 
         # Configure application logging
         loglevel = logging.CRITICAL - ((self.args.verbose + 1) * 10)
@@ -504,6 +511,7 @@ class MonPy:
         """
         exit_code = 0
         status = self.state.setdefault("status", {})
+        # Last run of MonPy itself (not a check)
         status["last_run_start"] = int(time.time())
 
         #seen_checks = []     TEMP DISABLED, SEE BELOW
@@ -524,12 +532,17 @@ class MonPy:
 
         status["last_run_end"] = int(time.time())
 
-        # Clean state
-        # FIXME: Add a grace period based on last_run_start and check_interval,
-        # otherwise it'll delete all checks immediately, even during testing.
-        #del_checks = [name for name in self.state["checks"].keys() if name not in seen_checks]
-        #for del_check in del_checks:
-        #    self.state["checks"].pop(del_check)
+        # Clean unseen checks. This happens when a check is renamed or removed.
+        # If we haven't seen a check for `self.prune_check_age` seconds, remove
+        # it from the state.
+        del_checks = []
+        now = int(time.time())
+        for check_name, check_state in self.state["checks"].items():
+            last_seen = check_state.get("last_seen", 0)
+            if last_seen < (now - self.prune_check_age):
+                del_checks.append(check_name)
+        for del_check in del_checks:
+            self.state["checks"].pop(del_check)
 
         self._state_save()
 
