@@ -304,6 +304,18 @@ class Check:
 
         return active_alerts
 
+    def prune_alerts(self, age):
+        """
+        Remove old alerts
+        """
+        cutoff = int(time.time()) - age
+        del_alerts = []
+        for alert_ident, alert_info in self.state["alerts"].items():
+            if alert_info["time_seen"] < cutoff:
+                del_alerts.append(alert_ident)
+        for alert_ident in del_alerts:
+            self.state["alerts"].pop(alert_ident)
+
     def __repr__(self):
         return f"<{self.__class__.__name__} " \
                f"'{self.name}' " \
@@ -314,7 +326,7 @@ class Check:
 
 class MonPy:
     def __init__(self, alerter=None, reporter=None, state_path=STATE_PATH,
-                 lock_wait=None, prune_check_age=86400*2):
+                 lock_wait=None, prune_check_age=86400*2, prune_alert_age=86400*2):
         """
         Main MonPy class that orchestrates the running of checks, alerting and
         reporting.
@@ -340,12 +352,16 @@ class MonPy:
 
         `prune_check_age` is the number of seconds after which the state of
         unseen checks are pruned.
+
+        `prune_alert_age` is the number of seconds after which old alerts are
+        pruned.
         """
         self.alerter = alerter
         self.reporter = reporter
         self.state_path = state_path
         self.lock_wait = lock_wait
         self.prune_check_age = prune_check_age
+        self.prune_alert_age = prune_alert_age
         self.checks = []
 
         # Reference to currently running check (self.run()), so that the check
@@ -540,6 +556,10 @@ class MonPy:
                 del_checks.append(check_name)
         for del_check in del_checks:
             self.state["checks"].pop(del_check)
+
+        # Clean old alerts
+        for check in self.checks:
+            check.prune_alerts(self.prune_alert_age)
 
         self._state_save()
 
