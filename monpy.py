@@ -295,6 +295,11 @@ class Check:
         alert_state["msg"] = msg
 
     def active_alerts(self):
+        """
+        Return a list of alerts that are currently still active. An alert is
+        active if the last time it was seen (or sent) was on or after the last
+        time the check was run.
+        """
         active_alerts = []
         for alert in self.state["alerts"].values():
             # If the last time an alert was seen was on or after the last time
