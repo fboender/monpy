@@ -514,10 +514,7 @@ class MonPy:
         # Last run of MonPy itself (not a check)
         status["last_run_start"] = int(time.time())
 
-        #seen_checks = []     TEMP DISABLED, SEE BELOW
         for check in self.checks:
-            #seen_checks.append(check.name)  TEMP DISABLED, SEE BELOW
-
             if self.args.check is not None and self.args.check != check.name:
                 self.logger.debug("Not running check '%s' due to argument '%s'", check.name, self.args.check)
                 continue
