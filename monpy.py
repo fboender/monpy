@@ -133,21 +133,21 @@ class Check:
         self.state = state
         self.alerted = False
 
-        # Save intervals in state. Purely informational so that Reporters can
-        # use them
+        # Save some information in the state so that Reporters can use them
         self.state["desc"] = desc
         self.state["check_interval"] = check_interval
         self.state["recheck_interval"] = recheck_interval
         self.state["alert_interval"] = alert_interval
 
-        # Register when we last saw this check (even if it didn't run)
+        # Register when we last saw this check (even if it didn't run). This is
+        # used to prune old checks.
         self.state["last_seen"] = int(time.time())
 
         self.logger = logging.getLogger(f"monpy.check.{self.name}")
 
     def run(self):
         """
-        Run this check, if `check_interval` has been reached. If
+        Run this check if `check_interval` has been reached. If
         `recheck_interval` is specified, and there is an active alert, also run
         the check when `recheck_interal` has been reached.
         """
@@ -514,6 +514,9 @@ class MonPy:
         reset and no alert will be sent. Note that this interacts with the
         `check_interval` value. If `check_interval` is 5 minutes and
         `alert_after` is 2, an alert won't be sent for 10 minutes.
+
+        If there is an active alert and `recheck_interval` is not None, the
+        check will run more frequently (at every `recheck_interval`).
         """
         def register_wrapper(func):
             self.register(
@@ -542,29 +545,18 @@ class MonPy:
 
             # Register current check so the check can call `monpy.history()`, etc.
             self.current_check = check
+
+            # Run the check
             result = check.run()
             if result is not None:
                 # Error occured
                 exit_code = 1
             self.current_check = None
 
+        self._prune_checks()
+        self._prune_alerts()
+
         status["last_run_end"] = int(time.time())
-
-        # Clean unseen checks. This happens when a check is renamed or removed.
-        # If we haven't seen a check for `self.prune_check_age` seconds, remove
-        # it from the state.
-        del_checks = []
-        now = int(time.time())
-        for check_name, check_state in self.state["checks"].items():
-            last_seen = check_state.get("last_seen", 0)
-            if last_seen < (now - self.prune_check_age):
-                del_checks.append(check_name)
-        for del_check in del_checks:
-            self.state["checks"].pop(del_check)
-
-        # Clean old alerts
-        for check in self.checks:
-            check.prune_alerts(self.prune_alert_age)
 
         self._state_save()
 
@@ -586,3 +578,26 @@ class MonPy:
         Wrapper around Check.alert for currently running check.
         """
         self.current_check.alert(msg, ident, alerter)
+
+    def _prune_checks(self):
+        """
+        Prune unseen checks. This happens when a check is renamed or removed.
+        If we haven't seen a check for `self.prune_check_age` seconds, remove
+        it from the state.
+        """
+        del_checks = []
+        now = int(time.time())
+        for check_name, check_state in self.state["checks"].items():
+            last_seen = check_state.get("last_seen", 0)
+            if last_seen < (now - self.prune_check_age):
+                del_checks.append(check_name)
+        for del_check in del_checks:
+            self.state["checks"].pop(del_check)
+
+    def _prune_alerts(self):
+        """
+        Prune old alerts. This happens when an alert hasn't been seen or sent
+        for `self.prune_alert_age` seconds.
+        """
+        for check in self.checks:
+            check.prune_alerts(self.prune_alert_age)
