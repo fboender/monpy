@@ -6,6 +6,8 @@ import socket
 import datetime
 import logging
 
+import model
+
 
 S_TEXT = 1
 S_EVAL = 2
@@ -171,7 +173,7 @@ from datetime import datetime, timedelta
     </tr>
     <tr>
         <th>Duration:</th>
-        <td>{{ last_run_end - last_run_start }}</td>
+        <td>{{ f"{(last_run_end - last_run_start).total_seconds():.3f}s" }}</td>
     </tr>
 </table>
 
@@ -195,7 +197,7 @@ for check in checks:
             <td><span class="{check['status_class']}"></span></td>
             <td>{check['last_run_start']}</td>
             <td>{check['last_run_start_ago']} ago</td>
-            <td>{check['last_run_end'] - check['last_run_start']}</td>
+            <td>{(check['last_run_end'] - check['last_run_start']).total_seconds():.2f}s</td>
             <td class="align-right">{check['check_interval']}</td>
             <td class="align-right">{check['alert_interval']}</td>
         </tr>
@@ -216,7 +218,7 @@ for alert in alerts:
     print(f"""
         <tr class="{alert['active']}">
             <td class="check_name">{alert['check_name']}</td>
-            <td class="nowrap">{datetime.fromtimestamp(alert['time_seen'])}</td>
+            <td class="nowrap">{alert['last_seen']}</td>
             <td>{alert['msg']}</td>
         </tr>
     """)
@@ -318,62 +320,52 @@ class HTML:
         self.out_path = out_path
         self.auto_refresh = auto_refresh
 
-    def render(self, state):
+    def render(self):
         now = datetime.datetime.now()
-        checks = []
-        alerts = []
-        for check_name, check_info in state["checks"].items():
-            last_run_start = datetime.datetime.fromtimestamp(check_info["last_run_start"])
-            last_run_start_ago = human_time((now - last_run_start).total_seconds())
-            last_run_end = datetime.datetime.fromtimestamp(check_info["last_run_end"])
-            duration = (last_run_end - last_run_start).seconds
-            next_run = last_run_start + datetime.timedelta(seconds=check_info["check_interval"])
-            check_interval_min = int(check_info["check_interval"] / 60)
-            alert_interval_min = int(check_info["alert_interval"] / 60)
+        cur = model.conn.cursor()
 
-            status_class = "status_okay"
-            for alert in check_info["alerts"].values():
-                alert["check_name"] = check_name
+        run_state = {}
+        cur.execute(f"SELECT value FROM monpy WHERE key = 'last_run_start'")
+        run_state["last_run_start"] = model.str_to_dt(cur.fetchone()[0])
+        cur.execute(f"SELECT value FROM monpy WHERE key = 'last_run_end'")
+        run_state["last_run_end"] = model.str_to_dt(cur.fetchone()[0])
+
+        cur.execute(f"SELECT * FROM checks")
+        checks = [dict(row) for row in cur]
+        alerts = []
+        for check in checks:
+            check["last_run_start"] = model.str_to_dt(check["last_run_start"])
+            check["last_run_end"] = model.str_to_dt(check["last_run_end"])
+            check["last_run_start_ago"] = human_time((now - check["last_run_start"]).total_seconds())
+            check["duration"] = (check["last_run_end"] - check["last_run_start"]).total_seconds()
+            check["next_run"] = check["last_run_start"] + datetime.timedelta(seconds=check["check_interval"])
+
+            check["status_class"] = "status_okay"
+            cur.execute("SELECT * FROM alerts WHERE check_name = ?", (check["name"], ))
+            for alert in [dict(row) for row in cur]:
                 # If the last time an alert was seen was on or after the last time
                 # the check was run the alert is currently active
-                if alert["time_seen"] >= check_info["last_run_start"]:
-                    status_class = "status_err"
+                alert["last_seen"] = model.str_to_dt(alert["last_seen"])
+                alert["last_sent"] = model.str_to_dt(alert["last_sent"])
+                if alert["last_seen"] >= check["last_run_start"]:
+                    check["status_class"] = "status_err"
                     alert["active"] = "active"
                 else:
                     alert["active"] = "old"
                 alerts.append(alert)
 
-            checks.append(
-                {
-                    "name": check_name,
-                    "desc": check_info.get("desc", ""),
-                    "last_run_start": last_run_start,
-                    "last_run_start_ago": last_run_start_ago,
-                    "last_run_end": last_run_end,
-                    "duration": duration,
-                    "next_run": next_run,
-                    "check_interval": human_time(check_info["check_interval"]),
-                    "alert_interval": human_time(check_info["alert_interval"]),
-                    "status_class": status_class,
-                }
-            )
-
         fqdn = socket.getfqdn()
-        last_run_start = datetime.datetime.fromtimestamp(state["status"]["last_run_start"])
-        last_run_end = datetime.datetime.fromtimestamp(state["status"]["last_run_end"])
-        duration = (last_run_end - last_run_start).seconds
-
         out = tpl(
             REPORT_TEMPLATE,
             vars={
                 "hostname": fqdn,
-                "last_run_start": last_run_start,
-                "last_run_end": last_run_end,
+                "last_run_start": run_state["last_run_start"],
+                "last_run_end": run_state["last_run_end"],
                 "auto_refresh": self.auto_refresh,
                 "checks": checks,
-                "alerts": sorted(alerts, key=lambda d: d['time_seen'], reverse=True)
+                "alerts": sorted(alerts, key=lambda d: d['last_seen'], reverse=True)
             }
         )
 
-        with open(self.out_path, "w") as fh:
+        with open("/home/fboender/report.html", "w") as fh:
             fh.write(out)

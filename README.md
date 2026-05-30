@@ -17,8 +17,8 @@ Monitoring tool where you write checks in Python instead of some declarative
 markup language. Simple, fast and powerful. No external libraries required,
 only a Python installation.
 
-MonPy provides tooling to easily write checks, keep state and history and
-generate alerts. Various useful data [collectors](#collectors) are provided
+MonPy provides tooling to easily write checks, generate alerts and keep custom
+state. Various useful data [collectors](#collectors) are provided
 out-of-the-box.
 
 Rather than calling some commandline tool or binary, with MonPy you write a
@@ -69,12 +69,11 @@ The `MonPy` class is the main orchestrator. It registers (via the
 provides various tools:
 
 * `MonPy.check()`: Decorator function for registering checks.
-* `MonPy.history()`: Keeps a (persisted in between invocations) history of
   previous check values.
 * `MonPy.alert()`: Send alerts if `alert_interval` has been reached for the
   alert.
-* `MonPy.logger`: Logging instance
-* `MonPy.state`: Persistent state
+* `MonPy.state()`: Keep custom state for checks.
+* `MonPy.log()`: Check logging instance
 
 # Checks
 

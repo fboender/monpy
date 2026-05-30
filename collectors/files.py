@@ -225,72 +225,61 @@ def log_watch(path, monpy, parse_regex=None, from_top=False):
     entire file is yielded. Otherwise (the default), we start from the end of
     the file.
     """
-    logger = logging.getLogger("monpy." + __name__)
+    logger = monpy.log()
     logger.debug("Inspecting log file '%s'", path)
     try:
         file_info = file(path)
-        # FIXME: Remove from state
     except FileNotFoundError:
         logger.warning("Log file not found: '%s'. Continuing with next log file", path)
         return
 
-    state = monpy.current_check.state
+    state_ident = f"{monpy.current_check.name}__log_watch"
+    with monpy.state(state_ident, {}) as state:
+        log_state = state.setdefault(
+            path,
+            {
+                "inode": file_info["inode"],
+                "pos": 0 if from_top else file_info["size"]
+            }
+        )
 
-    # Create "log_watch" key if not present
-    if not "log_watch" in state:
-        state["log_watch"] = {}
+        # Keep a list of log files and their positions that we should process
+        logs = []
 
-    # Get current log state for path, or set if not set
-    if path in state["log_watch"]:
-        log_state = state["log_watch"][path]
-    else:
-        # Log file never seen.
-        log_state = state["log_watch"][path] = {
-            "inode": file_info["inode"]
-        }
-        if from_top is True:
+        # Check if the inode in the current log state is the same as on disk. If
+        # not, the file has been rotated or deleted
+        if log_state["inode"] is not None and log_state["inode"] != file_info["inode"]:
+            # Log file rotated. Find path to inode in log dir for rotated file
+            prev_log_path = _find_inode_in_dir(log_state["inode"], os.path.dirname(path))
+            if prev_log_path is not None:
+                # Rotated log file found in current dir. Add to the list of logs to
+                # process
+                logs.append((prev_log_path, log_state["pos"]))
+
+            # Reset log pos so we start yielding from the top of the new log file
             log_state["pos"] = 0
-        else:
-            # Start at end of file
-            log_state["pos"] = file_info["size"]
 
-    # Keep a list of log files and their positions that we should process
-    logs = []
+        # Add current (or new) log file to the list of logs to process
+        logs.append((path, log_state["pos"]))
 
-    # Check if the inode in the current log state is the same as on disk. If
-    # not, the file has been rotated or deleted
-    if log_state["inode"] is not None and log_state["inode"] != file_info["inode"]:
-        # Log file rotated. Find path to inode in log dir for rotated file
-        prev_log_path = _find_inode_in_dir(log_state["inode"], os.path.dirname(path))
-        if prev_log_path is not None:
-            # Rotated log file found in current dir. Add to the list of logs to
-            # process
-            logs.append((prev_log_path, log_state["pos"]))
-
-        # Reset log pos so we start yielding from the top of the new log file
-        log_state["pos"] = 0
-
-    # Add current (or new) log file to the list of logs to process
-    logs.append((path, log_state["pos"]))
-
-    # Process queued log files
-    for log_file, log_pos in logs:
-        with open(log_file, "r") as fh:
-            # Register inode of current log file and add to log processing queue
-            log_state["inode"] = file_info["inode"]
-            fh.seek(log_pos)
-            for line in fh.readlines():
-                if parse_regex is not None:
-                    match = re.match(parse_regex, line)
-                    if match:
-                        yield match.groupdict()
+        # Process queued log files
+        for log_file, log_pos in logs:
+            with open(log_file, "r") as fh:
+                # Register inode of current log file and add to log processing queue
+                log_state["inode"] = file_info["inode"]
+                fh.seek(log_pos)
+                for line in fh.readlines():
+                    if parse_regex is not None:
+                        match = re.match(parse_regex, line)
+                        if match:
+                            yield match.groupdict()
+                        else:
+                            logger.warning("RegEx didn't match line: %s", line)
                     else:
-                        logger.warning("RegEx didn't match line: %s", line)
-                else:
-                    yield line
+                        yield line
 
-            # Register last position in log file in state
-            log_state["pos"] = fh.tell()
+                # Register last position in log file in state
+                log_state["pos"] = fh.tell()
 
 def checksum(path):
     """

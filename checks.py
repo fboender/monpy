@@ -78,11 +78,9 @@ def cpu_usage():
     Check CPU usage
     """
     load = collectors.load()
-    history = monpy.history(load["1min"], LOAD_SAMPLES)
-    minimum = min(history)
-    if minimum > LOAD_MAX:
+    if load["15min"] > LOAD_MAX:
         monpy.alert(
-            f"Minimum load of last {LOAD_SAMPLES} minutes higher than {LOAD_MAX} ({minimum})"
+            f"Load over last 15 minutes higher than {LOAD_MAX} ({load['15min']})"
         )
 
 @monpy.check(minutely, hourly)
@@ -441,18 +439,25 @@ if SCAN_DEVICES_NETWORK is not False:
         """
         Scan for new devices (MAC addresses) on a network
         """
-        device_status = monpy.current_check.state.setdefault("devices", [])
-        for device in collectors.devices(SCAN_DEVICES_NETWORK):
-            if device["mac"] is None:
-                continue
-
-            # Alert only once by keeping the mac in monpy status
-            if device["mac"] not in device_status:
-                device_status.append(device["mac"])
-                monpy.alert(
-                    f"New device found on network '{SCAN_DEVICES_NETWORK}': {device['ip']} (hostname={device['hostname']}, vendor={device['vendor']}, mac={device['mac']})",
-                    device["mac"]
+        with monpy.state("devices", []) as state:
+            for device in collectors.devices(SCAN_DEVICES_NETWORK):
+                monpy.log().debug(
+                    "Found IP %s with MAC '%s' (hostname=%s, vendor=%s)",
+                    device["ip"],
+                    device["mac"],
+                    device["hostname"],
+                    device["vendor"]
                 )
+                if device["mac"] is None:
+                    continue
+
+                # Alert only once by keeping the mac in monpy status
+                if device["mac"] not in state:
+                    state.append(device["mac"])
+                    monpy.alert(
+                        f"New device found on network '{SCAN_DEVICES_NETWORK}': {device['ip']} (hostname={device['hostname']}, vendor={device['vendor']}, mac={device['mac']})",
+                        device["mac"]
+                    )
 
 @monpy.check(daily, daily)
 def apt_security_updates_available():
@@ -553,7 +558,7 @@ def log_nginx_bruteforce():
                 banned_this_check.append(request['ip'])
 
                 msg = f"Banned IP '{request['ip']}' due to suspicious requests"
-                monpy.current_check.logger.warning(msg)
+                monpy.log().warning(msg)
 
     # Forget IP after not seeing it for 4 hours
     bucket.vacuum(60 * 60 * 4)
