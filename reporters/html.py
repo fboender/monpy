@@ -367,5 +367,5 @@ class HTML:
             }
         )
 
-        with open("/home/fboender/report.html", "w") as fh:
+        with open(self.out_path, "w") as fh:
             fh.write(out)
