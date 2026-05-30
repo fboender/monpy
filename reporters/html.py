@@ -165,11 +165,11 @@ from datetime import datetime, timedelta
 <table class="info">
     <tr>
         <th>Last run (start):</th>
-        <td>{{ last_run_start }}
+        <td>{{ last_run_start.isoformat(sep=" ", timespec="seconds") }}
     </tr>
     <tr>
         <th>Last run (end):</th>
-        <td>{{ last_run_end }}
+        <td>{{ last_run_end.isoformat(sep=" ", timespec="seconds") }}
     </tr>
     <tr>
         <th>Duration:</th>
@@ -195,11 +195,11 @@ for check in checks:
         <tr class="{check['status_class']}">
             <td class="check_name"><span class="check_desc" title="{check['desc']}" data-toggle="tooltip">?</span> {check['name']}</td>
             <td><span class="{check['status_class']}"></span></td>
-            <td>{check['last_run_start']}</td>
+            <td>{check['last_run_start'].isoformat(sep=" ", timespec="seconds")}</td>
             <td>{check['last_run_start_ago']} ago</td>
             <td>{(check['last_run_end'] - check['last_run_start']).total_seconds():.2f}s</td>
-            <td class="align-right">{check['check_interval']}</td>
-            <td class="align-right">{check['alert_interval']}</td>
+            <td class="align-right">{check['check_interval']}s</td>
+            <td class="align-right">{check['alert_interval']}s</td>
         </tr>
     """)
 %}
@@ -218,7 +218,7 @@ for alert in alerts:
     print(f"""
         <tr class="{alert['active']}">
             <td class="check_name">{alert['check_name']}</td>
-            <td class="nowrap">{alert['last_seen']}</td>
+            <td class="nowrap">{alert['last_seen'].isoformat(sep=" ", timespec="seconds")}</td>
             <td>{alert['msg']}</td>
         </tr>
     """)
