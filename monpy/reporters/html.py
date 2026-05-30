@@ -6,7 +6,7 @@ import socket
 import datetime
 import logging
 
-import model
+from .. import model
 
 
 S_TEXT = 1

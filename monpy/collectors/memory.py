@@ -1,6 +1,6 @@
 import os
 
-from tools import kb_to_bytes, camel_to_snake
+from ..tools import kb_to_bytes, camel_to_snake
 
 
 def memory():

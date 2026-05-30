@@ -11,7 +11,7 @@ import errno
 import datetime
 import sqlite3
 
-import model
+from . import model
 
 
 __METADATA__ = {

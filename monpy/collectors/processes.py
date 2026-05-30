@@ -1,6 +1,6 @@
 import os
 
-from tools import kb_to_bytes, process_info
+from ..tools import kb_to_bytes, process_info
 
 def processes():
     for fname in os.listdir("/proc"):

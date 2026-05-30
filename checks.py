@@ -19,13 +19,13 @@ import stat
 import datetime
 import subprocess
 
-from monpy import *
-from config import *
-from alerters import Pushover
-import collectors
-from reporters import HTML
-from tools import Bucket
+from monpy import MonPy
+from monpy import collectors
+from monpy.alerters import Pushover
+from monpy.reporters import HTML
+from monpy.tools import Bucket
 
+from config import *
 
 minutely = 60
 hourly = 60 * 60
@@ -50,9 +50,9 @@ alerter = Pushover(PUSHOVER_USER_TOKEN, PUSHOVER_APP_TOKEN)
 reporter = HTML(out_path="/var/lib/monpy/report.html", auto_refresh=60)
 monpy = MonPy(alerter=alerter, reporter=reporter, lock_wait=4)
 
-#############################################################################
-# System resource monitoring
-#############################################################################
+##############################################################################
+## System resource monitoring
+##############################################################################
 @monpy.check(minutely * 10, daily)
 def disk_space():
     """
