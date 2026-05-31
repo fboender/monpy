@@ -154,6 +154,20 @@ from datetime import datetime, timedelta
         text-align: right;
     }
 
+    /* Mobile */
+    @media (max-width: 1000px) {
+        #wrapper {
+            width: 100%;
+            padding: 16px;
+            font-size: small;
+        }
+        table th,td {
+            white-space: nowrap;
+        }
+        span.check_desc {
+            display: None;
+        }
+    }
 </style>
 <link rel="shortcut icon" href="">
 </head>
