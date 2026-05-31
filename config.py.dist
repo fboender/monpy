@@ -1,3 +1,5 @@
+from monpy.collectors import files
+
 # Pushover notification tokens
 PUSHOVER_USER_TOKEN = ""
 PUSHOVER_APP_TOKEN = ""
@@ -9,7 +11,7 @@ DISK_SPACE_FREE_PERC = 10
 LOW_MEM_AVAIL_PERC = 10
 
 # Maximum temperature of any sensor
-MAX_TEMPERATURE = 55
+MAX_TEMPERATURE = 60
 
 # Processes using more than X amount of memory. Some processes can be ignored
 PROC_HIGH_MEM_MB = 500
@@ -35,11 +37,18 @@ ALLOW_DOCKER_WILDCARD_BINDS = [
 ALLOW_CONTAINER_DOCKER_SOCKET = [
 ]
 
-# Temp paths to scan for weird things. Malware often writes to temp paths
+# World-writable temp paths to scan for weird things. Malware often writes to
+# temp paths
 TEMP_PATHS = [
     "/tmp",
     "/var/tmp",
     "/run/user"
+    "/run/screen",
+    "/run/lock",
+    "/dev/mqueue",
+    "/dev/shm",
+    "/var/lib/php/sessions",
+    "/var/lib/BrlAPI",
 ]
 
 # Minimum load over last 10 minutes higher than 0.9
@@ -52,6 +61,8 @@ HOST_PORTS_REACHABLE = [
     ("192.168.1.1", 80),
 ]
 
+# Scan network for devices with an unknown MAC address (Alert about new devices
+# on network)
 SCAN_DEVICES_NETWORK = False
 #SCAN_DEVICES_NETWORK = "192.168.1.0/24"
 
@@ -93,7 +104,8 @@ LISTEN_PORT_PROC_ALLOWED = {
 
 # Check these nginx log files for brute force attemps
 LOG_NGINX_FILES = [
-    "/var/log/nginx/access.log",
+    file["path"]
+    for file in files("/var/www/", name="access.log", depth=4)
 ]
 LOG_NGINX_IGNORE_IPS = [
     "10.20.30.40",
