@@ -72,7 +72,7 @@ def disk_space():
                 ident=mount["mount_point"]
             )
 
-@monpy.check(minutely, hourly)
+@monpy.check(minutely, hourly, alert_after=LOAD_MAX_ALERT_AFTER)
 def cpu_usage():
     """
     Check CPU usage

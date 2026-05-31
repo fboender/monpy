@@ -51,8 +51,9 @@ TEMP_PATHS = [
     "/var/lib/BrlAPI",
 ]
 
-# Minimum load over last 10 minutes higher than 0.9
+# Minimum load over last 15 minutes higher than 0.9
 LOAD_MAX = 0.9
+LOAD_MAX_ALERT_AFTER = 1
 
 # TCP connection tests
 HOST_PORTS_REACHABLE = [
