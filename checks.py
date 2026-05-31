@@ -351,6 +351,9 @@ def executables_in_tmp():
         raise err
 
     for temp_path in TEMP_PATHS:
+        if not os.path.exists(temp_path):
+            continue
+
         for file in collectors.files(temp_path, ftype='file', one_fs=False, on_error=error):
             is_exec = bool(file["mode"] & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH))
             if not is_exec:
