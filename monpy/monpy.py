@@ -12,6 +12,7 @@ import datetime
 import sqlite3
 
 from . import model
+from monpy.collectors import uptime
 
 
 __METADATA__ = {
@@ -115,7 +116,8 @@ class Lock:
 
 class MonPy:
     def __init__(self, alerter=None, reporter=None, state_dir=STATE_DIR,
-                 lock_wait=None, prune_check_age=86400*2, prune_alert_age=86400*2):
+                 lock_wait=None, prune_check_age=86400*2,
+                 prune_alert_age=86400*2, boot_wait=60*2):
         """
         Main MonPy class that orchestrates the running of checks, alerting and
         reporting.
@@ -144,6 +146,10 @@ class MonPy:
 
         `prune_alert_age` is the number of seconds after which old alerts are
         pruned.
+
+        `boot_wait` delays running checks for X seconds after the system has
+        rebooted. This is to prevent false-positives such as unhealthy services
+        that haven't started properly yet after a reboot.
         """
         self.alerter = alerter
         self.reporter = reporter
@@ -152,6 +158,7 @@ class MonPy:
         self.lock_wait = lock_wait
         self.prune_check_age = prune_check_age
         self.prune_alert_age = prune_alert_age
+        self.boot_wait = boot_wait
         self.checks = []
 
         # Reference to currently running check (self.run()), so that the check
@@ -287,6 +294,16 @@ class MonPy:
         Attempt to run all registered monitoring checks.
         """
         exit_code = 0
+
+        # Check system uptime and don't run checks if system has just rebooted
+        uptime_sec = uptime()["uptime"]
+        if uptime_sec < self.boot_wait:
+            self.logger.info(
+                "System uptime (%ss) smaller than boot_wait (%ss). Not running checks.",
+                uptime_sec,
+                self.boot_wait
+            )
+            return 0
 
         # Last run of MonPy itself (not a check)
         last_run_start = datetime.datetime.now()
