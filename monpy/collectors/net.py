@@ -11,7 +11,8 @@ import xml.etree.ElementTree as ET
 from .processes import process_info
 from ..tools import inode_pid_map
 
-logger = logging.getLogger("monpy." + __name__)
+
+logger = logging.getLogger(__name__)
 
 TCP_STATES = {
     "01": "ESTABLISHED",

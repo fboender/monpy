@@ -2,7 +2,7 @@ from urllib.request import Request, urlopen
 import logging
 
 
-logger = logging.getLogger("monpy." + __name__)
+logger = logging.getLogger(__name__)
 
 
 def nginx_status(url):

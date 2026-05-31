@@ -3,7 +3,7 @@ import logging
 import re
 import os
 
-logger = logging.getLogger("monpy." + __name__)
+logger = logging.getLogger(__name__)
 
 
 def apt_updates(update=True):

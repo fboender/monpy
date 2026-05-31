@@ -8,6 +8,8 @@ import logging
 import hashlib
 
 
+logger = logging.getLogger(__name__)
+
 file_types = {
     4096: "fifo",
     8192: "char",
@@ -225,7 +227,6 @@ def log_watch(path, monpy, parse_regex=None, from_top=False):
     entire file is yielded. Otherwise (the default), we start from the end of
     the file.
     """
-    logger = monpy.log()
     logger.debug("Inspecting log file '%s'", path)
     try:
         file_info = file(path)
