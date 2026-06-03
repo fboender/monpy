@@ -212,8 +212,8 @@ for check in checks:
             <td>{check['last_run_start'].isoformat(sep=" ", timespec="seconds")}</td>
             <td>{check['last_run_start_ago']} ago</td>
             <td>{(check['last_run_end'] - check['last_run_start']).total_seconds():.2f}s</td>
-            <td class="align-right">{check['check_interval']}s</td>
-            <td class="align-right">{check['alert_interval']}s</td>
+            <td class="align-right">{human_time(check['check_interval'])}</td>
+            <td class="align-right">{human_time(check['alert_interval'])}</td>
         </tr>
     """)
 %}
@@ -372,6 +372,7 @@ class HTML:
         out = tpl(
             REPORT_TEMPLATE,
             vars={
+                "human_time": human_time,
                 "hostname": fqdn,
                 "last_run_start": run_state["last_run_start"],
                 "last_run_end": run_state["last_run_end"],
