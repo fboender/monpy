@@ -209,6 +209,19 @@ if os.path.exists("/var/lib/docker/"):
                         ident=container_name
                     )
 
+    @monpy.check(daily, daily)
+    def docker_outdated():
+        """
+        Check for container updates
+        """
+        outdated_containers = []
+        for container in collectors.docker_containers():
+            if collectors.docker_container_outdated(container):
+                monpy.alert(
+                    f"Container '{container['Name'].lstrip('/')}' has an update available",
+                    ident=container["Name"]
+                )
+
 #############################################################################
 # Network and website monitoring
 #############################################################################
