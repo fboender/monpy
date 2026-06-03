@@ -30,8 +30,9 @@ checks.
 
 # Usage
 
-    $ ./checks.py --help
-    usage: monpy [-h] [--version] [-v] [-f] [--no-alert] [--no-suppress] [--log-file PATH] [CHECK]
+    usage: monpy [-h] [--version] [-v] [-f] [--no-alert] [--no-suppress]
+                 [--log-file PATH]
+                 [CHECK]
 
     positional arguments:
       CHECK            Check to run. If not given, runs all checks
@@ -79,14 +80,15 @@ provides various tools:
 
 Checks are written in Python as functions with the `monpy.check()` decorator:
 
-    def check(self, check_interval, alert_interval=0, alert_after=1):
+    def check(self, check_interval, alert_interval=0, alert_after=1,
+              recheck_interval=None):
         """
         Function decorator to register a function as a monitoring check.
 
         `check_interval` determines how often to check (seconds).
 
         `alert_interval` determines how long to wait between alerts (seconds).
-        0 means Always Alert.
+        0 will always alert.
 
         Alerts will be supressed until the check alerts `alert_after` times in
         a row. Default is 1, which will alert immediately. If the check
@@ -94,6 +96,9 @@ Checks are written in Python as functions with the `monpy.check()` decorator:
         reset and no alert will be sent. Note that this interacts with the
         `check_interval` value. If `check_interval` is 5 minutes and
         `alert_after` is 2, an alert won't be sent for 10 minutes.
+
+        If there is an active alert and `recheck_interval` is not None, the
+        check will run more frequently (at every `recheck_interval`).
         """
 
 For example, the following check runs every minute, and alerts once an hour if
