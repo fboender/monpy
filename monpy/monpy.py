@@ -114,10 +114,74 @@ class Lock:
             return True
 
 
+class Maintenance:
+    """
+    Read maintenance info from disk
+    """
+    def __init__(self, state_dir, maintenance_max):
+        self.state_dir = state_dir
+        self.maintenance_max = maintenance_max
+
+        self.maintenance_path = os.path.join(self.state_dir, "maintenance")
+        self.logger = logging.getLogger("monpy.maintenance")
+        self.maintenance = {}
+        self._load()
+
+    def _load(self):
+        """
+        Load all maintenances from disk.
+        """
+        if not os.path.exists(self.maintenance_path):
+            self.logger.debug("No maintenance active")
+            return
+
+        now = datetime.datetime.now()
+        for fname in os.listdir(self.maintenance_path):
+            path = os.path.join(self.maintenance_path, fname)
+            stat = os.stat(path)
+            mtime = datetime.datetime.fromtimestamp(stat.st_mtime)
+
+            until = None
+            with open(path, "r") as fh:
+                content = fh.read().strip()
+                if content != "":
+                    until = datetime.datetime.strptime(content, "%Y-%m-%d %H:%M:%S")
+
+            # Check if maintenance time has exceeded the max time. If so,
+            # ignore the maintenance.
+            if (now - mtime).total_seconds() > self.maintenance_max:
+                self.logger.warning("Maximum maintenance time for %s has been exceeded", fname)
+                continue
+
+            self.maintenance[fname] = {
+                "mtime": mtime,
+                "until": until
+            }
+
+    def active(self, check_name):
+        """
+        Check if check with `check_name` is in maintenance.
+        """
+        now = datetime.datetime.now()
+        active_maintenance = False
+
+        for key in ["ALL", check_name]:
+            if key in self.maintenance:
+                maintenance = self.maintenance[key]
+
+                # Check for longest maintenance time
+                until = maintenance["until"]
+                if until is None or until > now:
+                    active_maintenance = maintenance
+
+        return active_maintenance
+
+
 class MonPy:
     def __init__(self, alerter=None, reporter=None, state_dir=STATE_DIR,
                  lock_wait=None, prune_check_age=86400*2,
-                 prune_alert_age=86400*2, boot_wait=60*2):
+                 prune_alert_age=86400*2, boot_wait=60*2,
+                 maintenance_max=3600):
         """
         Main MonPy class that orchestrates the running of checks, alerting and
         reporting.
@@ -150,6 +214,10 @@ class MonPy:
         `boot_wait` delays running checks for X seconds after the system has
         rebooted. This is to prevent false-positives such as unhealthy services
         that haven't started properly yet after a reboot.
+
+        `maintenance_max` is the maximum amount of time all (or a specific)
+        checks can be in maintenance. If it is exceeded, the maintenance will
+        be ignored.
         """
         self.alerter = alerter
         self.reporter = reporter
@@ -159,6 +227,8 @@ class MonPy:
         self.prune_check_age = prune_check_age
         self.prune_alert_age = prune_alert_age
         self.boot_wait = boot_wait
+        self.maintenance_max = maintenance_max
+
         self.checks = []
 
         # Reference to currently running check (self.run()), so that the check
@@ -223,6 +293,8 @@ class MonPy:
         self.logger = logging.getLogger("monpy")
         self.logger.setLevel(loglevel)
         self.logger.addHandler(handler)
+
+        self.maintenance = Maintenance(self.state_dir, self.maintenance_max)
 
         # Connect to state database
         conn = sqlite3.connect(self.state_path)
@@ -312,6 +384,11 @@ class MonPy:
         for check in self.checks:
             if self.args.check is not None and self.args.check != check.name:
                 self.logger.debug("Not running check '%s' due to argument '%s'", check.name, self.args.check)
+                continue
+
+            maintenance = self.maintenance.active(check.name)
+            if maintenance is not False:
+                self.logger.debug("Not running check '%s' due to maintenance (until %s)", check.name, maintenance["until"] or "forever")
                 continue
 
             # Register current check so the check can call `monpy.history()`, etc.
