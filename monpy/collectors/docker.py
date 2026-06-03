@@ -4,6 +4,21 @@ import subprocess
 
 CONTAINER_DIR="/var/lib/docker/containers"
 
+def docker_container(container_id):
+    """
+    Return docker container information. See `docker_containers()` for more
+    info
+    """
+    res = subprocess.run(
+        ["docker", "inspect", container_id],
+        capture_output=True,
+        text=True,
+        check=True
+    )
+    container_info = json.loads(res.stdout)[0]
+    return container_info
+
+
 def docker_containers():
     """
     Docker container information.
@@ -114,11 +129,30 @@ def docker_containers():
         }
     """
     for container_id in os.listdir(CONTAINER_DIR):
-        res = subprocess.run(
-            ["docker", "inspect", container_id],
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        container_info = json.loads(res.stdout)[0]
-        yield container_info
+        yield docker_container(container_id)
+
+
+def docker_container_outdated(container_info):
+    """
+    Check if a docker container's image is outdated.
+
+    Requires `skopeo` CLI to be installed:
+
+        $ sudo apt install skopeo
+
+    Returns True if the container image has an update available, or False if
+    not.
+    """
+    image_name = container_info["Config"]["Image"]
+    res = subprocess.run(
+        ["skopeo", "inspect", f"docker://{image_name}"],
+        capture_output=True,
+        text=True,
+        check=True
+    )
+    inspect = json.loads(res.stdout)
+
+    local_image_hash = container_info["Image"]
+    remote_image_hash = inspect["Digest"]
+
+    return local_image_hash != remote_image_hash

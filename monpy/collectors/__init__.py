@@ -1,5 +1,6 @@
 from .mounts import mounts
-from .docker import docker_containers
+from .docker import docker_container, docker_containers, \
+                    docker_container_outdated
 from .nftables import nftables
 from .processes import processes
 from .memory import memory
