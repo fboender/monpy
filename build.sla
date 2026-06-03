@@ -15,3 +15,8 @@ list_collectors () {
     # Scan collector source code and show list of collectors
     grep '^def' collectors/ -R | grep -v ':def _' | cut -d "/" -f2 | sed "s/:/\t/" | column -t -s $'\t' | sort
 }
+
+update_readme () {
+    # Update README.md
+    contrib/update_readme.py
+}
