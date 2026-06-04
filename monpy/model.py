@@ -420,13 +420,14 @@ class Alert:
         """
         Check whether an alert should be sent and if so, send it.
         """
+        self.logger.warning(
+            "Alert (%s.%s): %s",
+            self.check_name,
+            self.ident,
+            self.msg
+        )
         if self.should_alert() is True:
-            self.logger.warning(
-                "Sending alert (%s.%s): %s",
-                self.check_name,
-                self.ident,
-                self.msg
-            )
+            self.logger.warning("Sending alert...")
             self.alerter.alert(self.msg, self.check_name)
             self.last_sent = datetime.datetime.now()
 
