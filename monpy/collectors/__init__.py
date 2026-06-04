@@ -8,7 +8,7 @@ from .files import file, files, egrep, log_watch, checksum
 from .cpu import load
 from .net import tcp_connect, http, ssl_cert, netstat, devices
 from .uptime import uptime
-from .git import git_repo
+from .git import Repo as git_repo
 from .temperatures import temperatures
 from .nginx import nginx_status
 from .apt import apt_updates, reboot_required
