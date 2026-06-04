@@ -1,6 +1,7 @@
 import logging
 import socket
 from urllib.request import Request, urlopen, HTTPError
+from urllib import error as urllib_error
 import base64
 import socket
 import ssl
@@ -123,7 +124,11 @@ def http(url,
                 "headers": dict(err.headers),
             }
         )
-    except (ConnectionRefusedError, TimeoutError) as err:
+    except (
+        ConnectionRefusedError,
+        TimeoutError,
+        urllib_error.URLError
+    ) as err:
         result.update(
             {
                 "status": -1,
