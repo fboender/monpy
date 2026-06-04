@@ -589,7 +589,7 @@ def git_repo_status():
     Check for out-of-date git repositories
     """
     for path in GIT_REPO_STATUS:
-        repo = collectors.git_repo(path)
+        repo = collectors.git_repo(path, fetch=True)
         status = repo.status()
         if status["has_changes"] > 0:
             monpy.alert(
@@ -598,12 +598,12 @@ def git_repo_status():
             )
         if status["ahead"] > 0:
             monpy.alert(
-                f"Repo '{path}' is {repo['ahead']} commits ahead of remote '{status['tracking_branch']}",
+                f"Repo '{path}' is {status['ahead']} commits ahead of remote '{status['tracking_branch']}",
                 ident=path
             )
         if status["behind"] > 0:
             monpy.alert(
-                f"Repo '{path}' is {repo['behind']} commits behind remote '{status['tracking_branch']}'",
+                f"Repo '{path}' is {status['behind']} commits behind remote '{status['tracking_branch']}'",
                 ident=path
             )
 
