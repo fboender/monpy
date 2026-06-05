@@ -513,6 +513,9 @@ def reboot_required():
 
 @monpy.check(hourly, hourly)
 def checksums():
+    """
+    Check file changes using checksums.
+    """
     for path, checksum in CHECKSUM_FILES:
         if collectors.checksum(path) != checksum:
             monpy.alert(
