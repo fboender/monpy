@@ -529,6 +529,7 @@ def new_cves():
     Report on newly published CVEs for specific keywords.
     """
     if not CVE_KEYWORDS:
+        monpy.log().warning("CVE_KEYWORDS empty. Not checking CVEs")
         return
 
     for new_cve in collectors.cves():
