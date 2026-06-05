@@ -90,7 +90,6 @@ SSL_CERT_CHECKS = [
 # Check that locally checked out git repos are not behind (missing updates)
 GIT_REPO_STATUS = [
     "/opt/apps/monpy",
-    "/opt/apps/cve-tracker",
     "/opt/apps/postfix2pushover",
 ]
 
