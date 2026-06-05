@@ -344,7 +344,7 @@ class HTML:
         cur.execute(f"SELECT value FROM monpy WHERE key = 'last_run_end'")
         run_state["last_run_end"] = model.str_to_dt(cur.fetchone()[0])
 
-        cur.execute(f"SELECT * FROM checks")
+        cur.execute(f"SELECT * FROM checks ORDER BY last_seen")
         checks = [dict(row) for row in cur]
         alerts = []
         for check in checks:
