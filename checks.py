@@ -523,30 +523,30 @@ def checksums():
                 ident=path
             )
 
-@monpy.check(daily, daily)
-def new_cves():
-    """
-    Report on newly published CVEs for specific keywords.
-    """
-    if not CVE_KEYWORDS:
-        monpy.log().warning("CVE_KEYWORDS empty. Not checking CVEs")
-        return
+if not CVE_KEYWORDS:
+    monpy.log().warning("CVE_KEYWORDS empty. Not checking CVEs")
+else:
+    @monpy.check(daily, daily)
+    def new_cves():
+        """
+        Report on newly published CVEs for specific keywords.
+        """
 
-    for new_cve in collectors.cves():
-        for keyword in [k.lower() for k in CVE_KEYWORDS]:
-            if (
-                keyword in new_cve["title"].lower() or
-                keyword in new_cve["description"].lower() or
-                keyword in new_cve["vendor"].lower() or
-                keyword in new_cve["product"].lower()
-            ):
-                monpy.alert(
-                    f"<b><a href=\"{new_cve['url']}\">{new_cve['id']}</a>: " \
-                    f"{new_cve['vendor']} - {new_cve['product']}</b>: " \
-                    f"<i>{new_cve['title']}</i>: {new_cve['description']}",
-                    ident=new_cve["id"],
-                    alerter=alerter_cve
-                )
+        for new_cve in collectors.cves():
+            for keyword in [k.lower() for k in CVE_KEYWORDS]:
+                if (
+                    keyword in new_cve["title"].lower() or
+                    keyword in new_cve["description"].lower() or
+                    keyword in new_cve["vendor"].lower() or
+                    keyword in new_cve["product"].lower()
+                ):
+                    monpy.alert(
+                        f"<b><a href=\"{new_cve['url']}\">{new_cve['id']}</a>: " \
+                        f"{new_cve['vendor']} - {new_cve['product']}</b>: " \
+                        f"<i>{new_cve['title']}</i>: {new_cve['description']}",
+                        ident=new_cve["id"],
+                        alerter=alerter_cve
+                    )
 
 #############################################################################
 # Log monitoring
