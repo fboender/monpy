@@ -523,9 +523,7 @@ def checksums():
                 ident=path
             )
 
-if not CVE_KEYWORDS:
-    monpy.log().warning("CVE_KEYWORDS empty. Not checking CVEs")
-else:
+if CVE_KEYWORDS:
     @monpy.check(daily, daily)
     def new_cves():
         """
