@@ -46,9 +46,10 @@ re_nginx = \
      r"$"
 
 
-alerter = Pushover(PUSHOVER_USER_TOKEN, PUSHOVER_APP_TOKEN)
+alerter_default = Pushover(PUSHOVER_TOKENS["default"]["user"], PUSHOVER_TOKENS["default"]["app"])
+alerter_cve = Pushover(PUSHOVER_TOKENS["cve"]["user"], PUSHOVER_TOKENS["cve"]["app"])
 reporter = HTML(out_path="/var/lib/monpy/report.html", auto_refresh=60)
-monpy = MonPy(alerter=alerter, reporter=reporter, lock_wait=4)
+monpy = MonPy(alerter=alerter_default, reporter=reporter, lock_wait=4)
 
 ##############################################################################
 ## System resource monitoring
@@ -519,6 +520,29 @@ def checksums():
                 ident=path
             )
 
+@monpy.check(daily, daily)
+def new_cves():
+    """
+    Report on newly published CVEs for specific keywords.
+    """
+    if not CVE_KEYWORDS:
+        return
+
+    for new_cve in collectors.cves():
+        for keyword in [k.lower() for k in CVE_KEYWORDS]:
+            if (
+                keyword in new_cve["title"].lower() or
+                keyword in new_cve["description"].lower() or
+                keyword in new_cve["vendor"].lower() or
+                keyword in new_cve["product"].lower()
+            ):
+                monpy.alert(
+                    f"<b><a href=\"{new_cve['url']}\">{new_cve['id']}</a>: " \
+                    f"{new_cve['vendor']} - {new_cve['product']}</b>: " \
+                    f"<i>{new_cve['title']}</i>: {new_cve['description']}",
+                    ident=new_cve["id"],
+                    alerter=alerter_cve
+                )
 
 #############################################################################
 # Log monitoring

@@ -15,3 +15,4 @@ from .apt import apt_updates, reboot_required
 from .systemd import systemctl_units, systemctl_timers, systemctl_automounts, \
                      systemctl_paths, systemctl_sockets, systemctl_failed, \
                      systemctl_show, journalctl
+from .cve import cves

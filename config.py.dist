@@ -1,8 +1,15 @@
 from monpy.collectors import files
 
-# Pushover notification tokens
-PUSHOVER_USER_TOKEN = ""
-PUSHOVER_APP_TOKEN = ""
+PUSHOVER_TOKENS = {
+    "default": {
+        "user": "TOKEN",
+        "app": "TOKEN"
+    },
+    "cve": {
+        "user": "TOKEN",
+        "app": "TOKEN",
+    },
+}
 
 # Minimal amount of required free disk space in %
 DISK_SPACE_FREE_PERC = 10
@@ -118,4 +125,16 @@ LOG_NGINX_BAN_CNT = 10
 # Format:
 #   (path, checksum)
 CHECKSUM_FILES = [
+    ("/home/fboender/.bashrc", "a29af56eec19e15f14296f508d9ce184acc0c77dd0e5d98deea4993bd9537926"),
+]
+
+# Keywords to match against newly published CVEs. The CVE's title, vendor,
+# product and description will all be searched for these keywords.
+CVE_KEYWORDS = [
+    "nextcloud",
+    "postgres",
+    "docker",
+    "httpd",
+    "redis",
+    "nginx"
 ]
