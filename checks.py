@@ -325,7 +325,7 @@ def systemd_failed_units():
     """
     Check for systemd units / services in failed state
     """
-    for unit in collectors.systemctl.failed():
+    for unit in collectors.systemd.failed():
         monpy.alert(
             f"Systemd unit '{unit['unit']}' failed.",
             ident=unit["unit"]
