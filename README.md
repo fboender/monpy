@@ -14,8 +14,8 @@
 # About
 
 Monitoring tool where you write checks in Python instead of some declarative
-markup language. Simple, fast and powerful. No external libraries required,
-only a Python installation.
+markup language or via a web UI. Simple, fast and powerful. No external
+libraries required, only a Python installation.
 
 MonPy provides tooling to easily write checks, generate alerts and keep custom
 state. Various useful data [collectors](#collectors) are provided
@@ -102,13 +102,14 @@ Checks are written in Python as functions with the `monpy.check()` decorator:
         """
 
 For example, the following check runs every minute, and alerts once an hour if
-a problem occurs. It uses the "load" [collectors](collectors/) to retrieve the
-current system load. It then checks if the average of the last 5 samples (so a
-total of 5 minutes) is higher than 0.9. If so, it sends an alert.
+a problem occurs. It uses the "load" [collectors](monpy/monpy/collectors/) to
+retrieve the current system load. It then checks if the average of the last 5
+samples (so a total of 5 minutes) is higher than 0.9. If so, it sends an
+alert.
 
     @monpy.check(60, 60*60)
     def cpu_usage():
-        load = collectors.load()
+        load = collectors.system.cpu_load()
         history = monpy.history(load["1min"], 5)
         avg = sum(history) / len(history)
         if avg > 0.9:
@@ -121,31 +122,18 @@ write checks.
 
 # Collectors
 
-Various [collectors](collectors/) are provided:
+Various [collectors](monpy/monpy/collectors/) are provided:
 
-* [`cpu`](collectors/cpu.py): CPU usage / load averages
-* [`memory`](collectors/memory.py): Memory utilization (total, free, used,
-  available) including in percentages
-* [`processes`](collectors/processes.py): Running process information, including
-  the PID, path to the process, current working dir, environment and process
-  status (`/proc/<PID>/status`)
-* [`temperatures`](collectors/temperatures.py): Temperature sensor information
-* [`files`](collectors/files.py): File iteration and information. Useful for
-  checking for files existing, their size, etc. Also included `log_watch` for
-  watching log files (with support for log rotation)
-* [`mounts`](collectors/mounts.py): Mount point information, including free / used
-  disk space
-* [`uptime`](collectors/uptime.py): System uptime information
-* [`systemd`](collectors/systemd.py): Systemd service / unit status
-* [`nftables`](collectors/nftables.py): nftable firewall rules
-* [`net`](collectors/net.py): TCP connections, HTTP calls, SSL certificate
-  information, local ports (netstat / ss) and network scanning (devices)
-* [`apt`](collectors/apt.py): Debian-derived 'apt' info such as uninstalled
-  (security) updates and whether a reboot is required
-* [`docker`](collectors/docker.py): Docker container information
-* [`git`](collectors/git.py): Git repository information such as ahead /
-  behind / uncommitted changes, etc
-* [`nginx`](collectors/nginx.py): Nginx stub_status module info
+* **[system](monpy/collectors/system.py)**: Memory, CPU, temperature, process and disk information.
+* **[net](monpy/collectors/net.py)**: TCP connections, http and SSL information.
+* **[files](monpy/collectors/files.py)**: File information, including a `find`-like method, grep, log watcher and file content checksummer.
+* **[systemd](monpy/collectors/systemd.py)**: Systemd unit, timer and mount information, including degraded units.
+* **[docker](monpy/collectors/docker.py)**: Various docker inspection tools, including container information and whether containers have updates.
+* **[nftables](monpy/collectors/nftables.py)**: Nftables ruleset information.
+* **[apt](monpy/collectors/apt.py)**: APT package status: whether updates are available and whether the system requires a reboot.
+* **[git](monpy/collectors/git.py)**: Git repo information such as status, log, fetch and fast forwarding.
+* **[cve](monpy/collectors/cve.py)**: CVE monitoring.
+* **[nginx](monpy/collectors/nginx.py)**: Nginx status monitoring.
 
 # Alerters
 
