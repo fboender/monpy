@@ -6,7 +6,7 @@ import os
 logger = logging.getLogger(__name__)
 
 
-def apt_updates(update=True):
+def updates(update=True):
     """
     Return info on upgradable packages.
 

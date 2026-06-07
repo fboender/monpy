@@ -9,8 +9,7 @@ import datetime
 import subprocess
 import xml.etree.ElementTree as ET
 
-from .processes import process_info
-from ..tools import inode_pid_map
+from ..tools import process_info, inode_pid_map
 
 
 logger = logging.getLogger(__name__)

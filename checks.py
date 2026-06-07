@@ -59,7 +59,7 @@ def disk_space():
     """
     Check disk space
     """
-    for mount in collectors.mounts():
+    for mount in collectors.system.mounts():
         if mount["type"] != "ext4":
             continue
 
@@ -78,7 +78,7 @@ def cpu_usage():
     """
     Check CPU usage
     """
-    load = collectors.load()
+    load = collectors.system.cpu_load()
     if load["15min"] > LOAD_MAX:
         monpy.alert(
             f"Load over last 15 minutes higher than {LOAD_MAX} ({load['15min']})"
@@ -89,7 +89,7 @@ def low_mem():
     """
     Check for low available memory
     """
-    meminfo = collectors.memory()
+    meminfo = collectors.system.memory()
     avail_p = meminfo["mem_available_perc"]
     avail_mb = meminfo['mem_available'] / (1024 ** 2)
     if meminfo["mem_available_perc"] < LOW_MEM_AVAIL_PERC:
@@ -102,7 +102,7 @@ def temperatures():
     """
     Check all available system sensors for high temperatures
     """
-    for t_info in collectors.temperatures():
+    for t_info in collectors.system.temperatures():
         if t_info["temperature"] > MAX_TEMPERATURE:
             monpy.alert(
                 f"Temperature for sensor '{t_info['name']}' higher than {MAX_TEMPERATURE}°C ({t_info['temperature']}°C, device: {t_info['device']}).",
@@ -114,7 +114,7 @@ def proc_with_high_mem():
     """
     Check for processes using a lot of memory
     """
-    for process in collectors.processes():
+    for process in collectors.system.processes():
         if process.get("vmrss", 0) > PROC_HIGH_MEM_MB * (1024 ** 2):
             ignore = False
             for process_name in PROC_HIGH_MEM_IGNORE:
@@ -141,7 +141,7 @@ if os.path.exists("/var/lib/docker/"):
         """
         Check for unhealthy containers.
         """
-        for container in collectors.docker_containers():
+        for container in collectors.docker.containers():
             name = container['Name'].lstrip('/')
             if "Health" not in container["State"]:
                 # No health check
@@ -166,7 +166,7 @@ if os.path.exists("/var/lib/docker/"):
         are not configured in ALLOW_DOCKER_WILDCARD_BINDS. This bypasses the
         firewall
         """
-        for container in collectors.docker_containers():
+        for container in collectors.docker.containers():
             if container["State"]["Running"] is not True:
                 # We don't care of the container isn't running
                 continue
@@ -195,7 +195,7 @@ if os.path.exists("/var/lib/docker/"):
         Check if a docker container mounts the docker socket into it. This is a
         security smell
         """
-        for container in collectors.docker_containers():
+        for container in collectors.docker.containers():
             if container["State"]["Running"] is not True:
                 # We don't care of the contaiener isn't running
                 continue
@@ -216,8 +216,8 @@ if os.path.exists("/var/lib/docker/"):
         Check for container updates
         """
         outdated_containers = []
-        for container in collectors.docker_containers():
-            if collectors.docker_container_outdated(container):
+        for container in collectors.docker.containers():
+            if collectors.docker.container_outdated(container):
                 monpy.alert(
                     f"Container '{container['Name'].lstrip('/')}' has an update available",
                     ident=container["Name"]
@@ -235,7 +235,7 @@ def host_ports_reachable():
         try:
             hostname = host_port[0]
             port = host_port[1]
-            reachable = collectors.tcp_connect(hostname, port, raise_exception=True)
+            reachable = collectors.net.tcp_connect(hostname, port, raise_exception=True)
         except (ConnectionRefusedError, TimeoutError) as err:
             monpy.alert(
                 f"Host '{hostname}:{port}' unreachable: {str(err)}'",
@@ -249,7 +249,7 @@ def http_body():
     """
     for check in HTTP_BODY_CHECKS:
         url, required_status, min_response_time, found_in_body = check
-        res = collectors.http(url)
+        res = collectors.net.http(url)
 
         if res["status"] != required_status:
             monpy.alert(
@@ -277,7 +277,7 @@ def ssl_expire():
     for check in SSL_CERT_CHECKS:
         host, port, days = check
 
-        ssl_info = collectors.ssl_cert(host, port)
+        ssl_info = collectors.net.ssl_cert(host, port)
         subject = ssl_info["subject"]["commonName"]
         if ssl_info["expires_days"] <= days:
             monpy.alert(
@@ -294,7 +294,7 @@ def mail_in_spool():
     Check if there is local mail in /var/spool/mail. This happens if the mail
     server cannot deliver mail
     """
-    for file in collectors.files("/var/spool/mail"):
+    for file in collectors.files.files("/var/spool/mail"):
         if file["size"] > 0:
             monpy.alert(
                 f"Mail found in /var/spool/mail for '{file['filename']}'",
@@ -308,13 +308,13 @@ def cron_mailto():
     cronjobs fail
     """
     files = []
-    files.append(collectors.file("/etc/crontab"))
+    files.append(collectors.files.file("/etc/crontab"))
     # FIXME
     #files.extend(collectors.files("/etc/cron.d"))
-    files.extend(collectors.files("/var/spool/cron/crontabs"))
+    files.extend(collectors.files.files("/var/spool/cron/crontabs"))
 
     for file in files:
-        if collectors.egrep(file["path"], b".*MAILTO.*") is None:
+        if collectors.files.egrep(file["path"], b".*MAILTO.*") is None:
             monpy.alert(
                 f"Cron file '{file['path']}' has no MAILTO",
                 ident=file["path"],
@@ -325,7 +325,7 @@ def systemd_failed_units():
     """
     Check for systemd units / services in failed state
     """
-    for unit in collectors.systemctl_failed():
+    for unit in collectors.systemctl.failed():
         monpy.alert(
             f"Systemd unit '{unit['unit']}' failed.",
             ident=unit["unit"]
@@ -339,7 +339,7 @@ def high_uptime():
     """
     Check for high system uptime. Systems should be regularly rebooted
     """
-    uptime = collectors.uptime()
+    uptime = collectors.system.uptime()
     if uptime["uptime"] > UPTIME_DAYS * 24 * 60 * 60:
         monpy.alert(
             f"Uptime is higher than {UPTIME_DAYS} days"
@@ -368,7 +368,7 @@ def executables_in_tmp():
         if not os.path.exists(temp_path):
             continue
 
-        for file in collectors.files(temp_path, ftype='file', one_fs=False, on_error=error):
+        for file in collectors.files.files(temp_path, ftype='file', one_fs=False, on_error=error):
             is_exec = bool(file["mode"] & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH))
             if not is_exec:
                 continue
@@ -395,7 +395,7 @@ def nftables_default_policy():
     input_4_dropped = False
     input_6_dropped = False
 
-    for element in collectors.nftables()["nftables"]:
+    for element in collectors.nftables.rulesets()["nftables"]:
         if (
             "chain" in element and
             element["chain"].get("hook", "") == "input" and
@@ -426,7 +426,7 @@ def listening_ports():
     listen_ports = []
 
     # Gather all ports that are listening on all interfaces
-    for port in collectors.netstat():
+    for port in collectors.net.netstat():
         if port["state"] != "LISTEN":
             continue
         if port["local"][0] not in ["0.0.0.0", "::"]:
@@ -457,7 +457,7 @@ if SCAN_DEVICES_NETWORK is not False:
         Scan for new devices (MAC addresses) on a network
         """
         with monpy.state("devices", []) as state:
-            for device in collectors.devices(SCAN_DEVICES_NETWORK):
+            for device in collectors.net.devices(SCAN_DEVICES_NETWORK):
                 monpy.log().debug(
                     "Found IP %s with MAC '%s' (hostname=%s, vendor=%s)",
                     device["ip"],
@@ -486,7 +486,7 @@ def apt_security_updates_available():
     """
     security_updates = [
         update
-        for update in collectors.apt_updates()
+        for update in collectors.apt.updates()
         if update["security"] is True
     ]
 
@@ -506,7 +506,7 @@ def reboot_required():
     Debian-derived systems touch /run/reboot-required when a package indicates
     that the system needs to be rebooted for the upgrade to fully take effect.
     """
-    if collectors.reboot_required() is True:
+    if collectors.apt.reboot_required() is True:
         monpy.alert(
             f"A reboot is required after updating packages."
         )
@@ -517,7 +517,7 @@ def checksums():
     Check file changes using checksums.
     """
     for path, checksum in CHECKSUM_FILES:
-        if collectors.checksum(path) != checksum:
+        if collectors.files.checksum(path) != checksum:
             monpy.alert(
                 f"Checksum for '{path}' didn't match",
                 ident=path
@@ -530,7 +530,7 @@ if CVE_KEYWORDS:
         Report on newly published CVEs for specific keywords.
         """
 
-        for new_cve in collectors.cves():
+        for new_cve in collectors.cve.new():
             for keyword in [k.lower() for k in CVE_KEYWORDS]:
                 if (
                     keyword in new_cve["title"].lower() or
@@ -573,7 +573,7 @@ def log_nginx_bruteforce():
     bucket = Bucket(sqlite_path, "log_nginx_bruteforce")
     banned_this_check = []
     for log_path in LOG_NGINX_FILES:
-        for request in collectors.log_watch(log_path, monpy, re_nginx):
+        for request in collectors.files.log_watch(log_path, monpy, re_nginx):
             # Ignore based on IP
             if request["ip"] in LOG_NGINX_IGNORE_IPS:
                 continue
@@ -615,7 +615,7 @@ def git_repo_status():
     Check for out-of-date git repositories
     """
     for path in GIT_REPO_STATUS:
-        repo = collectors.git_repo(path, fetch=True)
+        repo = collectors.git.Repo(path, fetch=True)
         status = repo.status()
         if status["has_changes"] > 0:
             monpy.alert(

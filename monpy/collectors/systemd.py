@@ -11,49 +11,49 @@ def _systemctl_cmd(type):
     elements = json.loads(proc.stdout)
     return elements
 
-def systemctl_units():
+def units():
     """
     Systemd unit status
     """
     for element in _systemctl_cmd("list-units"):
         yield element
 
-def systemctl_timers():
+def timers():
     """
     Systemd timer status
     """
     for element in _systemctl_cmd("list-timers"):
         yield element
 
-def systemctl_automounts():
+def automounts():
     """
     Systemd automounts status
     """
     for element in _systemctl_cmd("list-automounts"):
         yield element
 
-def systemctl_paths():
+def paths():
     """
     Systemd path status
     """
     for element in _systemctl_cmd("list-paths"):
         yield element
 
-def systemctl_sockets():
+def sockets():
     """
     Systemd socket status
     """
     for element in _systemctl_cmd("list-sockets"):
         yield element
 
-def systemctl_failed():
+def failed():
     """
     Systemd failed units
     """
     for element in _systemctl_cmd("--failed"):
         yield element
 
-def systemctl_show(unit):
+def show(unit):
     """
     Systemd show unit information
     """

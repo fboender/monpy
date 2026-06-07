@@ -1,7 +1,7 @@
 import subprocess
 import json
 
-def nftables():
+def rulesets():
     res = subprocess.run(
         ["nft", "-j", "list", "ruleset"],
         capture_output=True,

@@ -5,7 +5,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def nginx_status(url):
+def status(url):
     """
     Read Nginx stub_status info
     (https://nginx.org/en/docs/http/ngx_http_stub_status_module.html)

@@ -12,7 +12,7 @@ import datetime
 import sqlite3
 
 from . import model
-from monpy.collectors import uptime
+from monpy.collectors.system import uptime
 
 
 __METADATA__ = {

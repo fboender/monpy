@@ -35,7 +35,7 @@ def _simplify_cve(raw_cve):
 
     return cve
 
-def cves(cvelistv5_repo="/var/lib/monpy/cvelistV5", simplified=True):
+def new(cvelistv5_repo="/var/lib/monpy/cvelistV5", simplified=True):
     """
     Yields CVE information that's newly added the official CVE list (CVE List
     5) github repository.

@@ -4,7 +4,7 @@ import subprocess
 
 CONTAINER_DIR="/var/lib/docker/containers"
 
-def docker_container(container_id):
+def container(container_id):
     """
     Return docker container information. See `docker_containers()` for more
     info
@@ -19,7 +19,7 @@ def docker_container(container_id):
     return container_info
 
 
-def docker_containers():
+def containers():
     """
     Docker container information.
 
@@ -129,10 +129,10 @@ def docker_containers():
         }
     """
     for container_id in os.listdir(CONTAINER_DIR):
-        yield docker_container(container_id)
+        yield container(container_id)
 
 
-def docker_container_outdated(container_info):
+def container_outdated(container_info):
     """
     Check if a docker container's image is outdated.
 
