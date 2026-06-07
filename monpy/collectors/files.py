@@ -234,8 +234,7 @@ def log_watch(path, monpy, parse_regex=None, from_top=False):
         logger.warning("Log file not found: '%s'. Continuing with next log file", path)
         return
 
-    state_ident = f"{monpy.current_check.name}__log_watch"
-    with monpy.state(state_ident, {}) as state:
+    with monpy.state("log_watch", {}) as state:
         log_state = state.setdefault(
             path,
             {

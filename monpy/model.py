@@ -40,11 +40,12 @@ SCHEMAS = [
     """,
     """
         CREATE TABLE IF NOT EXISTS "custom_state" (
+            check_name        TEXT,
             ident             TEXT,
             last_seen         DATETIME,
             state             TEXT,
 
-            PRIMARY KEY (ident)
+            PRIMARY KEY (check_name, ident)
         );
     """,
     """
@@ -452,7 +453,8 @@ class CustomState:
 
     If not state for `ident` is found, `default` is used.
     """
-    def __init__(self, ident, default):
+    def __init__(self, check_name, ident, default):
+        self.check_name = check_name
         self.ident = ident
         self.default = default
 
@@ -460,9 +462,10 @@ class CustomState:
         cur = conn.cursor()
         cur.execute(
             """
-            SELECT state FROM custom_state WHERE ident = ?
+            SELECT state FROM custom_state WHERE check_name = ? AND ident = ?
             """,
             (
+                self.check_name,
                 self.ident,
             )
         )
@@ -479,12 +482,13 @@ class CustomState:
         cur = conn.cursor()
         cur.execute(
             """
-            INSERT INTO custom_state VALUES (?, ?, ?)
-            ON CONFLICT(ident) DO UPDATE SET
+            INSERT INTO custom_state VALUES (?, ?, ?, ?)
+            ON CONFLICT(check_name, ident) DO UPDATE SET
                 last_seen = excluded.last_seen,
                 state = excluded.state
             """,
             (
+                self.check_name,
                 self.ident,
                 dt_to_str(now),
                 json.dumps(self.state)

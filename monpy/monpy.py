@@ -455,10 +455,9 @@ class MonPy:
         Store and retrieve custom states that are preserved between invocations
         of MonPy.
 
-        `ident` uniquely identifies the custom state. It is not bound to a
-        check, so you can use a single state in multiple checks.
+        `ident` uniquely identifies the custom state within a single check.
 
-        If not state for `ident` is found, `default` is used.
+        If no state for `ident` is found, `default` is used.
 
         You can store any JSON-serializable state.
 
@@ -467,4 +466,4 @@ class MonPy:
             with monpy.state("mystate", {}) as state:
                 state["curval"] = 10
         """
-        return model.CustomState(ident, default)
+        return model.CustomState(self.current_check.name, ident, default)
