@@ -210,7 +210,7 @@ for check in checks:
             <td class="check_name"><span class="check_desc" title="{check['desc']}" data-toggle="tooltip">?</span> {check['name']}</td>
             <td><span class="{check['status_class']}"></span></td>
             <td>{check['last_run_start'].isoformat(sep=" ", timespec="seconds")}</td>
-            <td>{check['last_run_start_ago']} ago</td>
+            <td class="align-right">{check['last_run_start_ago']} ago</td>
             <td>{(check['last_run_end'] - check['last_run_start']).total_seconds():.2f}s</td>
             <td class="align-right">{human_time(check['check_interval'])}</td>
             <td class="align-right">{human_time(check['alert_interval'])}</td>
