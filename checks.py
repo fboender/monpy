@@ -524,7 +524,7 @@ def checksums():
             )
 
 if CVE_KEYWORDS:
-    @monpy.check(daily, daily)
+    @monpy.check(daily, daily, recheck_interval=minutely * 5)
     def new_cves():
         """
         Report on newly published CVEs for specific keywords.
