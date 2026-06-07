@@ -174,16 +174,19 @@ class Check:
         if self.last_run_start is None:
             return True
 
+        # Nr of seconds since last run
+        elapsed = (now - self.last_run_start).total_seconds()
+
         # Check if recheck_interval is specified and if there are any active
         # alerts
         if self.recheck_interval is not None and self.active_alerts():
-            return True
+            # Check if recheck_interval has been reached since last run
+            if elapsed >= self.recheck_interval:
+                return True
 
         # Check if check_interval has been reached since last run
-        elapsed = (now - self.last_run_start).total_seconds()
         if elapsed >= self.check_interval:
             return True
-        no_check_reason = f"Interval ({self.check_interval}s) not reached ({elapsed:.0f}s)"
 
         self.logger.debug(
             "Not running check '%s': Interval (%ss) not reached (%ss)",
