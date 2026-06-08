@@ -456,7 +456,7 @@ if SCAN_DEVICES_NETWORK is not False:
         """
         Scan for new devices (MAC addresses) on a network
         """
-        with monpy.state("devices", []) as state:
+        with monpy.state("devices", {}) as state:
             for device in collectors.net.devices(SCAN_DEVICES_NETWORK):
                 monpy.log().debug(
                     "Found IP %s with MAC '%s' (hostname=%s, vendor=%s)",
@@ -470,11 +470,31 @@ if SCAN_DEVICES_NETWORK is not False:
 
                 # Alert only once by keeping the mac in monpy status
                 if device["mac"] not in state:
-                    state.append(device["mac"])
+                    state[device["mac"]] = device
                     monpy.alert(
                         f"New device found on network '{SCAN_DEVICES_NETWORK}': {device['ip']} (hostname={device['hostname']}, vendor={device['vendor']}, mac={device['mac']})",
                         device["mac"]
                     )
+
+            # Write CSV file of devices
+            import csv
+            headers = ["MAC", "IP", "Status", "hostname", "vendor"]
+
+            csv_path = os.path.join(monpy.state_dir, "devices.csv")
+            with open(csv_path, "w", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f, delimiter="\t")
+                writer.writerow(headers)
+                for device in state.values():
+                    writer.writerow(
+                        [
+                            device["mac"],
+                            device["ip"],
+                            device["status"],
+                            device["hostname"],
+                            device["vendor"]
+                        ]
+                    )
+
 
 @monpy.check(daily, daily)
 def apt_security_updates_available():
