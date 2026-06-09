@@ -428,7 +428,7 @@ class Alert:
             "Alert (%s.%s): %s",
             self.check_name,
             self.ident,
-            self.msg
+            self.msg.replace("\n", "\\n")
         )
         if self.should_alert() is True:
             self.logger.warning("Sending alert...")
