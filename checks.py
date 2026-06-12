@@ -345,7 +345,7 @@ def high_uptime():
             f"Uptime is higher than {UPTIME_DAYS} days"
         )
 
-@monpy.check(hourly, daily)
+@monpy.check(hourly, daily, recheck_interval=minutely * 5)
 def executables_in_tmp():
     """
     Check for executables in temp directories. These are indicators of system
