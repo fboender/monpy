@@ -222,8 +222,8 @@ for check in checks:
             <td>{check['last_run_start'].isoformat(sep=" ", timespec="seconds")}</td>
             <td class="align-right">{check['last_run_start_ago']} ago</td>
             <td class="align-right">{(check['last_run_end'] - check['last_run_start']).total_seconds():.2f}s</td>
-            <td class="align-right">{human_time(check['check_interval'])}</td>
-            <td class="align-right">{human_time(check['alert_interval'])}</td>
+            <td class="align-right">{duration(check['check_interval'])}</td>
+            <td class="align-right">{duration(check['alert_interval'])}</td>
         </tr>
     """)
 %}
@@ -314,9 +314,40 @@ def tpl(tpl, vars={}):
     return out
 
 
-def human_time(secs, inc_months=False, max_res=None):
+def duration(secs, inc_months=False, max_res=None):
     """
     Return a human-readable representation of elapsed time.
+
+    If `inc_months` is True, include approximate amount of months (30 days).
+
+    `max_res` determines the maximum resolution, e.g. nr of items returned. If
+    the output would be "1h 16m 7s", but `max_res` is 2, the output becomes
+    "1h 16m".
+
+    Example output:
+
+    >>> duration(0)
+    '0s'
+    >>> duration(4)
+    '4s'
+    >>> duration(456)
+    '7m 36s'
+    >>> duration(4567)
+    '1h 16m 7s'
+    >>> duration(45678)
+    '12h 41m 18s'
+    >>> duration(45678, max_res=2)
+    '12h 41m'
+    >>> duration(456789)
+    '5d 6h 53m 9s'
+    >>> duration(3456789)
+    '40d 13m 9s'
+    >>> duration(23456789, inc_months=True)
+    '9mo 1d 11h 46m 29s'
+    >>> duration(39482752)
+    '1y 91d 23h 25m 52s'
+    >>> duration(39482752, inc_months=True)
+    '1y 3mo 1d 23h 25m 52s'
     """
     mapping = [
         ("y", True, 60 * 60 * 24 * 365),
@@ -360,7 +391,7 @@ class HTML:
         for check in checks:
             check["last_run_start"] = model.str_to_dt(check["last_run_start"])
             check["last_run_end"] = model.str_to_dt(check["last_run_end"])
-            check["last_run_start_ago"] = human_time((now - check["last_run_start"]).total_seconds())
+            check["last_run_start_ago"] = duration((now - check["last_run_start"]).total_seconds())
             check["duration"] = (check["last_run_end"] - check["last_run_start"]).total_seconds()
             check["next_run"] = check["last_run_start"] + datetime.timedelta(seconds=check["check_interval"])
 
@@ -382,7 +413,7 @@ class HTML:
         out = tpl(
             REPORT_TEMPLATE,
             vars={
-                "human_time": human_time,
+                "duration": duration,
                 "hostname": fqdn,
                 "last_run_start": run_state["last_run_start"],
                 "last_run_end": run_state["last_run_end"],
