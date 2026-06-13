@@ -15,6 +15,7 @@ S_EVAL = 2
 REPORT_TEMPLATE='''
 {%
 from datetime import datetime, timedelta
+from html import escape
 %}
 <!DOCTYPE html>
 <html>
@@ -216,7 +217,7 @@ from datetime import datetime, timedelta
 for check in checks:
     print(f"""
         <tr class="{check['status_class']}">
-            <td class="check_name"><span class="check_desc" title="{check['desc']}" data-toggle="tooltip">?</span> {check['name']}</td>
+            <td class="check_name"><span class="check_desc" title="{escape(check['desc'])}" data-toggle="tooltip">?</span> {escape(check['name'])}</td>
             <td><span class="{check['status_class']}"></span></td>
             <td>{check['last_run_start'].isoformat(sep=" ", timespec="seconds")}</td>
             <td class="align-right">{check['last_run_start_ago']} ago</td>
@@ -240,9 +241,9 @@ for check in checks:
 for alert in alerts:
     print(f"""
         <tr class="{alert['active']}">
-            <td class="check_name">{alert['check_name']}</td>
+            <td class="check_name">{escape(alert['check_name'])}</td>
             <td class="nowrap">{alert['last_seen'].isoformat(sep=" ", timespec="seconds")}</td>
-            <td>{alert['msg']}</td>
+            <td>{escape(alert['msg'])}</td>
         </tr>
     """)
 %}
