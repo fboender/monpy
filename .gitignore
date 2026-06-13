@@ -1,3 +1,5 @@
 __pycache__
 config.py
 checks_local.py
+monpy.egg-info/
+build/

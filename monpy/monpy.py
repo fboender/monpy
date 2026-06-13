@@ -11,18 +11,10 @@ import errno
 import datetime
 import sqlite3
 
-from . import model
+from . import __METADATA__, model
 from monpy.collectors.system import uptime
 
 
-__METADATA__ = {
-    "name": "monpy",
-    "version": "0.1",
-    "author": "Ferry Boender",
-    "author_email": "ferry.boender@gmail.com",
-    "desc": "",
-    "homepage": "https://github.com/fboender/monpy",
-}
 STATE_DIR = "/var/lib/monpy/"
 
 

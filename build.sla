@@ -9,6 +9,8 @@
 clean () {
     # Remove build artifacts and other junk
     find ./ -name __pycache__ -exec rm -rf {} +
+    rm -rf build
+    rm -rf monpy.egg-info
 }
 
 list_collectors () {
