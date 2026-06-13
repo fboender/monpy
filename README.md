@@ -47,9 +47,10 @@ MonPy takes a different approach. Checks are written in plain Python code,
 making it easy to reason about the logic and simple to add actual things you
 care about. For example, you'd want to know if any of your disks have less
 than 10% disk space available, unless that disk is huge and 10% still means
-dozens of free gigabytes.
+dozens of free gigabytes. MonPy easily allows you to add simple or complex
+exceptions.
 
-MoNpy heavily prioritizes alerting over dashboard and metrics (which often
+MonPy heavily prioritizes alerting over dashboard and metrics (which often
 offer little to no additional benefit over system or application logging).
 Alerts keep being sent until the problem has actually been solved (or you just
 stop monitoring pointless things).
@@ -58,6 +59,12 @@ With checks being written in a real, powerful programming language, you can
 monitor basically everything you could ever care about. From system / docker
 container health and log file monitoring to security problems such as new CVEs
 for your stack and Indicators of Compromise, or website response times.
+
+Finally, since MonPy monitoring scripts are just plain old code, you can
+easily distribute them to various systems and environments using any old
+deployment strategy. Use standards methods of configuration to tailor the
+scripts to a specific environment.
+
 
 # Getting started
 
