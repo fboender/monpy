@@ -558,10 +558,11 @@ if CVE_KEYWORDS:
                     keyword in new_cve["vendor"].lower() or
                     keyword in new_cve["product"].lower()
                 ):
+                    from html import escape
                     monpy.alert(
                         f"<b><a href=\"{new_cve['url']}\">{new_cve['id']}</a>: " \
-                        f"{new_cve['vendor']} - {new_cve['product']}</b>: " \
-                        f"<i>{new_cve['title']}</i>: {new_cve['description']}",
+                        f"{escape(new_cve['vendor'])} - {escape(new_cve['product'])}</b>: " \
+                        f"<i>{escape(new_cve['title'])}</i>: {escape(new_cve['description'])}",
                         ident=new_cve["id"],
                         alerter=alerter_cve
                     )

@@ -243,7 +243,7 @@ for alert in alerts:
         <tr class="{alert['active']}">
             <td class="check_name">{escape(alert['check_name'])}</td>
             <td class="nowrap">{alert['last_seen'].isoformat(sep=" ", timespec="seconds")}</td>
-            <td>{escape(alert['msg'])}</td>
+            <td>{alert['msg']}</td>
         </tr>
     """)
 %}
