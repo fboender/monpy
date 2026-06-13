@@ -62,7 +62,7 @@ for your stack and Indicators of Compromise, or website response times.
 
 Finally, since MonPy monitoring scripts are just plain old code, you can
 easily distribute them to various systems and environments using any old
-deployment strategy. Use standards methods of configuration to tailor the
+deployment strategy. Use standard methods of configuration to tailor the
 scripts to a specific environment.
 
 
