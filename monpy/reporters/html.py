@@ -117,12 +117,19 @@ from datetime import datetime, timedelta
         padding: 3px 15px 6px 6px;
         font-weight: bold;
     }
+    td {
+        padding: 3px 15px 3px 6px;
+        vertical-align: top;
+    }
     table.data th {
         background-color: #606060;
         color: #FFFFFF;
     }
-    td {
-        padding: 3px 15px 3px 6px;
+    table.data tr:nth-child(odd) {
+      background: #f5f5f5;
+    }
+    table.data tr:nth-child(even) {
+      background: white;
     }
     td.check_name {
         font-weight: bold;
@@ -130,10 +137,12 @@ from datetime import datetime, timedelta
         font-size: 1.2em;
     }
     td.check_name span.check_desc {
-        color: #999;
+        display: inline-block;
         border: 1px solid #999;
         padding: 2px 5px;
-        font-size: small;
+        font-weight: bold;
+        color: #999;
+        background-color: #FFFFFF;
     }
     .nowrap {
         white-space:nowrap;
