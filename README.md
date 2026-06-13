@@ -1,7 +1,9 @@
 <!-- TOC -->
 * [About](#about)
     * [Why](#why)
-* [Usage](#usage)
+* [Getting started](#getting-started)
+    * [Installation](#installation)
+    * [Usage](#usage)
 * [Status](#status)
 * [Components](#components)
     * [MonPy class](#monpy-class)
@@ -57,14 +59,38 @@ monitor basically everything you could ever care about. From system / docker
 container health and log file monitoring to security problems such as new CVEs
 for your stack and Indicators of Compromise, or website response times.
 
-# Usage
+# Getting started
+
+## Installation
 
 MonPy is tested with Python v3.10.12+. Older versions may work, but it is not
 guaranteed.
 
 To install MonPy:
 
-    $ pip3 install ...FIXME...
+    $ sudo pip3 install git+https://github.com/fboender/monpy
+
+If you get a "`This environment is externally managed`" error, you can safely
+override that warning, since MonPy does not come with any additional
+requirements or external libraries:
+
+    $ sudo pip3 install --break-system-packages git+https://github.com/fboender/monpy
+
+If you'd rather not do that, you can instead create a virtualenv:
+
+    $ virtualenv monpy
+    $ monpy/bin/pip3 install git+https://github.com/fboender/monpy
+
+To run a MonPy monitoring script, you'll have to refer to the `python3`
+interpreter in that virtualenv, either through direct invocation:
+
+    $ monpy/bin/python3 checks.py -v
+
+Or by changing the shebang in the script to:
+
+    #!/path/to/monpy/bin/python3
+
+## Usage
 
 MonPy is used as a Python library from a custom monitoring script. A simple
 example (`checks.py`):
@@ -133,6 +159,11 @@ Argument parsing is handled by the `MonPy` orchestrator class. Full usage:
     usage: monpy [-h] [--version] [-v] [-f] [--no-alert] [--no-suppress]
                  [--log-file PATH]
                  [CHECK]
+
+    MonPy is a system, security and performance monitoring tool where you write
+    checks in Python instead of some declarative markup language or via a web UI.
+    Simple, fast and powerful. No external libraries required, only a Python
+    installation.
 
     positional arguments:
       CHECK            Check to run. If not given, runs all checks that have
