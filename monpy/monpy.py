@@ -271,7 +271,7 @@ class MonPy:
                             metavar="CHECK",
                             type=str,
                             nargs="?",
-                            help="Check to run. If not given, runs all checks")
+                            help="Check to run. If not given, runs all checks that have reached their check_interval")
 
         self.args = parser.parse_args()
 
@@ -338,7 +338,7 @@ class MonPy:
         `check_interval` determines how often to check (seconds).
 
         `alert_interval` determines how long to wait between alerts (seconds).
-        0 will always alert.
+        0 will alert every check, if there is a problem.
 
         Alerts will be supressed until the check alerts `alert_after` times in
         a row. Default is 1, which will alert immediately. If the check
