@@ -1,21 +1,26 @@
 <!-- TOC -->
 * [About](#about)
+    * [Why](#why)
 * [Usage](#usage)
-* [MonPy class](#monpy-class)
-* [Checks](#checks)
-* [Collectors](#collectors)
-* [Alerters](#alerters)
-* [Reporters](#reporters)
+* [Status](#status)
+* [Components](#components)
+    * [MonPy class](#monpy-class)
+    * [The `check()` decorator](#the-`check()`-decorator)
+    * [Collectors](#collectors)
+    * [Alerters](#alerters)
+    * [Reporters](#reporters)
 * [How-to](#how-to)
     * [Run check at specific time](#run-check-at-specific-time)
     * [Include checks from other file](#include-checks-from-other-file)
+* [License and contributing](#license-and-contributing)
 <!-- EOTOC -->
 
 # About
 
-Monitoring tool where you write checks in Python instead of some declarative
-markup language or via a web UI. Simple, fast and powerful. No external
-libraries required, only a Python installation.
+MonPy is a system, security and performance monitoring tool where you write
+checks in Python instead of some declarative markup language or via a web UI.
+Simple, fast and powerful. No external libraries required, only a Python
+installation.
 
 MonPy provides tooling to easily write checks, generate alerts and keep custom
 state. Various useful data [collectors](#collectors) are provided
@@ -28,14 +33,110 @@ to actually perform the monitoring.
 See [`checks.py`](checks.py) for examples of what's possible and how to write
 checks.
 
+## Why
+
+As an SRE with over 20 year of experience, I have found that the vast majority
+of monitoring tools prioritize fancy dashboards and graphs over precise
+monitoring and alerts. They make it easy to add tons of out-of-the-box metrics
+about services, but make it difficult - if not impossible - to add a simple
+exception to a specific monitoring check or alert.
+
+MonPy takes a different approach. Checks are written in plain Python code,
+making it easy to reason about the logic and simple to add actual things you
+care about. For example, you'd want to know if any of your disks have less
+than 10% disk space available, unless that disk is huge and 10% still means
+dozens of free gigabytes.
+
+MoNpy heavily prioritizes alerting over dashboard and metrics (which often
+offer little to no additional benefit over system or application logging).
+Alerts keep being sent until the problem has actually been solved (or you just
+stop monitoring pointless things).
+
+With checks being written in a real, powerful programming language, you can
+monitor basically everything you could ever care about. From system / docker
+container health and log file monitoring to security problems such as new CVEs
+for your stack and Indicators of Compromise, or website response times.
+
 # Usage
+
+MonPy is tested with Python v3.10.12+. Older versions may work, but it is not
+guaranteed.
+
+To install MonPy:
+
+    $ pip3 install ...FIXME...
+
+MonPy is used as a Python library from a custom monitoring script. A simple
+example (`checks.py`):
+
+    #!/bin/env python3
+
+    import sys
+    from monpy import MonPy
+    from monpy import collectors
+    from monpy.alerters import Pushover
+
+    alerter = Pushover("USER_TOKEN", "APP_TOKEN")
+    monpy = MonPy(alerter=alerter)
+
+    @monpy.check(60, 3600)
+    def low_mem_available():
+        mem_info = collectors.system.memory()
+        if mem_info["mem_available_perc"] < 10:
+            monpy.alert("Less than 10% memory available")
+
+    sys.exit(monpy.run())
+
+You execute the script to perform the monitoring checks:
+
+    $ python3 checks.py -vvv
+    2026-06-13 04:33:25,473    DEBUG monpy.maintenance | No maintenance active
+    2026-06-13 04:33:25,474    DEBUG monpy | Registered '<Check 'low_mem_available' check_interval=60 alert_interval=3600>'
+    2026-06-13 04:33:25,474     INFO monpy | Starting run...
+    2026-06-13 04:33:25,474     INFO monpy.check.low_mem_available | Running check 'low_mem_available'
+    2026-06-13 04:33:25,475  WARNING monpy.alert.low_mem_available | Alert (low_mem_available.None): Less than 10% memory available
+    2026-06-13 04:33:25,475  WARNING monpy.alert.low_mem_available | Sending alert...
+    2026-06-13 04:33:25,476     INFO monpy | Ending run. Duration: 0.001342s
+
+The script works as follows:
+
+1. We import the main `MonPy` orchestrator class, the
+   [collectors](#collectors) and an alert method
+   ([Pushover](https://pushover.net/))
+1. The alerter and `MonPy` instance are configured
+1. We define a check `low_mem_available` using the `@monpy.check` decorator.
+   The first argument is the `check_interval`, which we set to every 60
+   seconds. The second argument specifies the `alert_interval`. This
+   determines how often we alert about a problem. In this case, once an hour
+1. The `low_mem_available` check uses the `system.memory` collector to
+   retrieve information about the current memory status, and checks that at
+   least 10% memory is available. If not, it issues an alert.
+1. Finally, we execute the `monpy.run()` method, which will run the actual
+   checks. Its exit code is returned to the calling parent process using
+   `sys.exit()`.
+
+If we run the script again before `check_interval` is reached, the
+`low_mem_available` check will not run:
+
+    2026-06-13 04:43:41,187    DEBUG monpy.check.low_mem_available | Not running check 'low_mem_available': Interval (60s) not reached (2s)
+
+We can ignore the `check_interval` and force checks to run using the `-f`
+(force) parameter. You can also specify a specific check to run:
+
+    $ python3 check.py -vvv -f low_mem_available
+    2026-06-13 04:46:15,105     INFO monpy.check.low_mem_available | Running check 'low_mem_available'
+    2026-06-13 04:46:15,106  WARNING monpy.alert.low_mem_available | Alert (low_mem_available.None): Less than 10% memory available
+    2026-06-13 04:46:15,106     INFO monpy.alert.low_mem_available | Not alerting for 'low_mem_available': Alert interval (3600s) not reached (18s)
+
+Argument parsing is handled by the `MonPy` orchestrator class. Full usage:
 
     usage: monpy [-h] [--version] [-v] [-f] [--no-alert] [--no-suppress]
                  [--log-file PATH]
                  [CHECK]
 
     positional arguments:
-      CHECK            Check to run. If not given, runs all checks
+      CHECK            Check to run. If not given, runs all checks that have
+                       reached their check_interval
 
     options:
       -h, --help       show this help message and exit
@@ -46,28 +147,36 @@ checks.
       --no-suppress    Ignore alert interval and do not suppress alerts
       --log-file PATH  Log to file. If not given, log to stderr
 
-cronjob:
+A cronjob can be used to run the script every minute:
 
     * * * * * cd /opt/monpy && ./checks.py -v --log-file /var/log/monpy.log
 
-Example ouput (`-vvv` verbose mode):
+See [`checks.py`](checks.py) for more examples of what's possible and how to
+write checks.
 
-    2026-05-03 11:12:08,392     INFO check | Running check 'docker_wildcard_bind'
-    2026-05-03 11:12:08,394     INFO root | Supressing alert for 'docker_wildcard_bind'. Alert interval (86400s) not reached (1318s elapsed). Alert: Container 'nextcloud-aio-mastercontainer' exposes port 8080/tcp on all interfaces (0.0.0.0)
-    2026-05-03 11:12:08,395     INFO check | Running check 'nftables_default_policy'
-    2026-05-03 11:12:08,401     INFO check | Running check 'docker_mount_socket'
-    2026-05-03 11:12:08,402     INFO root | Supressing alert for 'docker_mount_socket'. Alert interval (86400s) not reached (1380s elapsed). Alert: Container 'nextcloud-aio-watchtower' mounts the docker socket in the container
-    2026-05-03 11:12:08,402     INFO root | Supressing alert for 'docker_mount_socket'. Alert interval (86400s) not reached (1380s elapsed). Alert: Container 'nextcloud-aio-mastercontainer' mounts the docker socket in the container
-    2026-05-03 11:12:08,403     INFO check | Running check 'proc_with_high_mem'
-    2026-05-03 11:12:08,494     INFO check | Running check 'low_mem'
-    2026-05-03 11:12:08,494     INFO check | Running check 'mail'
-    2026-05-03 11:12:08,494     INFO root | Supressing alert for 'mail'. Alert interval (86400s) not reached (1380s elapsed). Alert: Mail found in /var/spool/mail for 'fboender'
+# Status
 
-# MonPy class
+This project is currently in active development, and is not considered stable.
 
-The `MonPy` class is the main orchestrator. It registers (via the
-`MonPy.check()` decorator) checks, alerters and reporters. It runs checks,
-provides various tools:
+MonPy is a personal project, designed and maintained for my own needs. It's
+provided AS IS, in the hopes that it will be useful to someone else.
+
+It is unlikely I will implement feature requests or provide substantial
+support for this project, beyond my own needs. There is no desire to grow this
+project beyond its current scope.
+
+I do not accept contributions for this project.
+
+If you find MonPy useful and would like to see it grow into something bigger
+and better, feel free to fork and rename the project.
+
+# Components
+
+## MonPy class
+
+The `MonPy` class is the main orchestrator. It registers checks (using the
+[`Monpy.check()`](#the-check-decorator), alerters and reporters. It runs checks, provides
+various tools:
 
 * `MonPy.check()`: Decorator function for registering checks.
   previous check values.
@@ -76,9 +185,10 @@ provides various tools:
 * `MonPy.state()`: Keep custom state for checks.
 * `MonPy.log()`: Check logging instance
 
-# Checks
+## The `check()` decorator
 
-Checks are written in Python as functions with the `monpy.check()` decorator:
+Checks are written in Python as functions decorated with the `MonPy.check()`
+decorator:
 
     def check(self, check_interval, alert_interval=0, alert_after=1,
               recheck_interval=None):
@@ -88,7 +198,7 @@ Checks are written in Python as functions with the `monpy.check()` decorator:
         `check_interval` determines how often to check (seconds).
 
         `alert_interval` determines how long to wait between alerts (seconds).
-        0 will always alert.
+        0 will alert every check, if there is a problem.
 
         Alerts will be supressed until the check alerts `alert_after` times in
         a row. Default is 1, which will alert immediately. If the check
@@ -101,26 +211,7 @@ Checks are written in Python as functions with the `monpy.check()` decorator:
         check will run more frequently (at every `recheck_interval`).
         """
 
-For example, the following check runs every minute, and alerts once an hour if
-a problem occurs. It uses the "load" [collectors](monpy/monpy/collectors/) to
-retrieve the current system load. It then checks if the average of the last 5
-samples (so a total of 5 minutes) is higher than 0.9. If so, it sends an
-alert.
-
-    @monpy.check(60, 60*60)
-    def cpu_usage():
-        load = collectors.system.cpu_load()
-        history = monpy.history(load["1min"], 5)
-        avg = sum(history) / len(history)
-        if avg > 0.9:
-            monpy.alert(
-                f"Average load of last 5 minutes higher than 0.9 ({avg})"
-            )
-
-See [`checks.py`](checks.py) for more examples of what's possible and how to
-write checks.
-
-# Collectors
+## Collectors
 
 Various [collectors](monpy/monpy/collectors/) are provided:
 
@@ -135,7 +226,7 @@ Various [collectors](monpy/monpy/collectors/) are provided:
 * **[cve](monpy/collectors/cve.py)**: CVE monitoring.
 * **[nginx](monpy/collectors/nginx.py)**: Nginx status monitoring.
 
-# Alerters
+## Alerters
 
 There are currently two alerters:
 
@@ -155,7 +246,7 @@ You can use a custom alerter when issuing an alert:
         alerter=customer_alerter
     )
 
-# Reporters
+## Reporters
 
 At the end of a run, you can generate a report about the current status. At
 the moment, only a HTML reporter is available. To use it:
@@ -235,3 +326,9 @@ Then in your main checks file, you can register it manually:
     from external import test_undecorated
     monpy.register(test_undecorated(monpy), minutely, hourly)
 
+# License and contributing
+
+MonPy is released under the [MIT License](LICENSE.txt).
+
+I do not take contributions to this project. See the [Status](#status) chapter
+for more information.

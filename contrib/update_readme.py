@@ -29,20 +29,21 @@ def_check = get_def_check()
 
 with Text("README.md") as doc:
     # Replace existing Table of Contents with up-to-date one
-    doc \
-        .sel(start_after="<!-- TOC -->\n", end="\n<!-- EOTOC -->")\
-        .replace(readme_toc)
+    doc.sel(
+        start_after="<!-- TOC -->\n",
+        end="\n<!-- EOTOC -->"
+    ).replace(readme_toc)
 
     # Replace Usage with up-to-date one
-    doc \
-        .sel(start_after="# Usage\n\n", end="\ncronjob:")\
-        .replace(usage)
+    doc.sel(
+        start_after="Full usage:\n\n",
+        end="\nA cronjob can"
+    ).replace(usage)
 
     # Replace `check()` definition with up-to-date one
-    doc \
-        .sel(start="    def check(", end_after='"""') \
-        .sel_end_fwd(end_after='"""') \
-        .replace(def_check)
+    doc.sel(
+        start="    def check(",
+        end_after='"""'
+    ).sel_end_fwd(end_after='"""').replace(def_check)
 
     doc.save()
-
