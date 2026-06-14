@@ -15,7 +15,7 @@ clean () {
 
 list_collectors () {
     # Scan collector source code and show list of collectors
-    grep '^def' collectors/ -R | grep -v ':def _' | cut -d "/" -f2 | sed "s/:/\t/" | column -t -s $'\t' | sort
+    grep '^def' monpy/collectors/ -R | grep -v ':def _' | cut -d "/" -f3 | sed "s/:/\t/" | column -t -s $'\t' | sort
 }
 
 update_readme () {
