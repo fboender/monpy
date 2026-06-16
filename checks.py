@@ -285,6 +285,21 @@ def ssl_expire():
                 ident=f"{host}:{port}"
             )
 
+@monpy.check(minutely * 15, daily)
+def external_ip_changed():
+    """
+    Check if external outgoing IP has changed.
+    """
+    cur_external_ip = collectors.net.external_ip()
+
+    with monpy.state("external_ip", {"ip": "unknown"}) as state:
+        if state["ip"] != cur_external_ip:
+            monpy.alert(
+                f"External IP changed from '{state['ip']}' to '{cur_external_ip}'"
+            )
+        state["ip"] = cur_external_ip
+
+
 #############################################################################
 # Server problem and error reporting monitoring
 #############################################################################
