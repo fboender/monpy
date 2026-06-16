@@ -654,6 +654,34 @@ def git_repo_status():
                 ident=path
             )
 
+@monpy.check(daily, daily)
+def python_venv_vulns():
+    """
+    Scan local python virtualenvs for installed vulnerable packages.
+    """
+    run = False
+    try:
+        PIPAUDIT_VENV_ROOTS
+        if PIPAUDIT_VENV_ROOTS:
+            run = True
+    except NameError:
+        pass
+
+    if run is False:
+        monpy.logger.info("PIPAUDIT_VENV_ROOT undefined or empty. Not auditing any Python virtualenvs for vulnerabilities")
+        return
+
+    # Find 'site-packages' directories in venv_path
+    for venv_root in PIPAUDIT_VENV_ROOTS:
+        for site_pkg_path in collectors.files.files(venv_root, name="site-packages"):
+            venv_name = site_pkg_path["path"][len(venv_root):].split("/", 1)[0]
+            for vuln in collectors.python.pip_audit(site_pkg_path["path"], PIPAUDIT_PATH):
+                monpy.alert(
+                    f"Package {vuln['name']} v{vuln['version']}' in virtualenv '{venv_name}' vulnerable (fixed in v{vuln['fixed']}): {vuln['vulnerability_id']} {vuln['description']}",
+                    ident=f"{venv_name}_{vuln['name']}_{vuln['version']}"
+                )
+
+
 if os.path.exists("checks_local.py"):
     # Local only checks
     from checks_local import register

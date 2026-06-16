@@ -137,3 +137,9 @@ CVE_KEYWORDS = [
     "redis",
     "nginx"
 ]
+
+# Find site-packages dirs in PIPAUDIT_VENV_ROOT and audit them with pip-audit
+#PIPAUDIT_PATH="/home/fboender/.pyenvs/common/bin/pip-audit"
+#PIPAUDIT_VENV_ROOTS=[
+#    "/home/fboender/.pyenvs/",
+#]
