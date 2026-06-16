@@ -350,3 +350,16 @@ def devices(network):
             host_info["hostname"] = hostnames[0].get("name")
 
         yield host_info
+
+def external_ip(timeout=4):
+    """
+    Returns the current external IP address. This is the internet routable
+    public address.
+
+    Returns:
+
+        "123.123.123.123"
+
+    """
+    external_ip = urlopen("https://ifconfig.me", timeout=timeout).read().decode()
+    return external_ip
