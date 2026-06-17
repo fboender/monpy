@@ -293,8 +293,8 @@ class MonPy:
         conn.row_factory = sqlite3.Row
         model.init_db(conn)
 
-    def _register(self, func, check_interval, alert_interval=0, alert_after=1,
-                 recheck_interval=None):
+    def _register(self, func, check_interval=60, alert_interval=0,
+                  alert_after=1, recheck_interval=None):
         """
         Register a check function.
 
@@ -322,7 +322,7 @@ class MonPy:
         self.checks.append(check)
         self.logger.debug("Registered '%s'", check)
 
-    def check(self, check_interval, alert_interval=0, alert_after=1,
+    def check(self, check_interval=60, alert_interval=0, alert_after=1,
               recheck_interval=None):
         """
         Function decorator to register a function as a monitoring check.
