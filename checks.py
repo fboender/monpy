@@ -461,7 +461,7 @@ def listening_ports():
 
         if exe_allowed not in listen_exes:
             monpy.alert(
-                f"Listening port '{port_nr}' not whitelisted. Allowed executable '{exe_allowed}' not found in listening executables {listen_exes}",
+                f"Executables {listen_exes} not configured to be allowed to listen on port '{port_nr}'",
                 ident=port_nr
             )
 
