@@ -50,7 +50,7 @@ def tcp_connect(host, port, timeout=3, raise_exception=False):
         s.connect((host, port))
         logger.debug("Connection to %s:%s successfull", host, port)
         return True
-    except (ConnectionRefusedError, TimeoutError):
+    except (ConnectionRefusedError, TimeoutError, socket.gaierror):
         if raise_exception is True:
             raise
         else:
@@ -126,7 +126,8 @@ def http(url,
     except (
         ConnectionRefusedError,
         TimeoutError,
-        urllib_error.URLError
+        urllib_error.URLError,
+        socket.gaierror
     ) as err:
         result.update(
             {
