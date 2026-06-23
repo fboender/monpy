@@ -213,8 +213,8 @@ and better, feel free to fork and rename the project.
 ## MonPy class
 
 The `MonPy` class is the main orchestrator. It registers checks (using the
-[`Monpy.check()`](#the-check-decorator), alerters and reporters. It runs checks, provides
-various tools:
+[`Monpy.check()`](#the-check-decorator)), alerters and reporters. It executes
+checks, handlers maintenance and state and sends alerts:
 
 * `MonPy.check()`: Decorator function for registering checks.
   previous check values.
@@ -254,7 +254,7 @@ decorator:
 Various [collectors](monpy/monpy/collectors/) are provided:
 
 * **[system](monpy/collectors/system.py)**: Memory, CPU, temperature, process and disk information.
-* **[net](monpy/collectors/net.py)**: TCP connections, http and SSL information.
+* **[net](monpy/collectors/net.py)**: TCP connections, http, SSL and external otugoing IP information.
 * **[files](monpy/collectors/files.py)**: File information, including a `find`-like method, grep, log watcher and file content checksummer.
 * **[systemd](monpy/collectors/systemd.py)**: Systemd unit, timer and mount information, including degraded units.
 * **[docker](monpy/collectors/docker.py)**: Various docker inspection tools, including container information and whether containers have updates.
@@ -263,6 +263,7 @@ Various [collectors](monpy/monpy/collectors/) are provided:
 * **[git](monpy/collectors/git.py)**: Git repo information such as status, log, fetch and fast forwarding.
 * **[cve](monpy/collectors/cve.py)**: CVE monitoring.
 * **[nginx](monpy/collectors/nginx.py)**: Nginx status monitoring.
+* **[python](monpy/collectors/python.py)**: Python virtualenv security auditing.
 
 ## Alerters
 
@@ -327,6 +328,23 @@ You can also check the time manually in a check:
             return
 
         ...
+
+## Maintenance
+
+Maintenance can be activated by creating a directory `maintenance` in the
+state dir and creating files in it. By default this would be
+`/var/lib/monpy/maintenance`.
+
+If a file `ALL` exists in this directory, all check will be put in
+maintenance. If a file exists that matches a check name, only that check will
+be put into maintenance.
+
+Files can (but don't need to) contain a timestamp in the form of `YYYY-MM-DD
+HH:MM:SS` to specify the time until which the maintenance is active.
+
+You can pass a `maintenance_max` parameter to the `MonPy` instance, which will
+determine the maximum time for a maintenance period. The default is 3600
+seconds (1 hour).
 
 ## Include checks from other file
 
