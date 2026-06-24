@@ -128,21 +128,27 @@ class Maintenance:
             return
 
         now = datetime.datetime.now()
+
+        # Parse all files found in maintenance dir
         for fname in os.listdir(self.maintenance_path):
             path = os.path.join(self.maintenance_path, fname)
             stat = os.stat(path)
             mtime = datetime.datetime.fromtimestamp(stat.st_mtime)
 
+            # Check if maintenance expiration is present in the file. If so,
+            # use it. Otherwise, expiratarion is None (forever, until
+            # maintenance_max)
             until = None
             with open(path, "r") as fh:
                 content = fh.read().strip()
                 if content != "":
                     until = datetime.datetime.strptime(content, "%Y-%m-%d %H:%M:%S")
 
-            # Check if maintenance time has exceeded the max time. If so,
-            # ignore the maintenance.
+            # Check if maintenance time (at creation; file mtime) has exceeded
+            # the max time. If so, remove the maintenance file and ignore it.
             if (now - mtime).total_seconds() > self.maintenance_max:
-                self.logger.warning("Maximum maintenance time for %s has been exceeded", fname)
+                self.logger.warning("Maximum maintenance time for '%s' has been exceeded. Removing maintenance", fname)
+                os.unlink(path)
                 continue
 
             self.maintenance[fname] = {
@@ -157,6 +163,7 @@ class Maintenance:
         now = datetime.datetime.now()
         active_maintenance = False
 
+        # Either "ALL" or check name
         for key in ["ALL", check_name]:
             if key in self.maintenance:
                 maintenance = self.maintenance[key]
@@ -164,7 +171,10 @@ class Maintenance:
                 # Check for longest maintenance time
                 until = maintenance["until"]
                 if until is None or until > now:
-                    active_maintenance = maintenance
+                    # If no maintenance yet, or this maintenance is longer then
+                    # currently known maintenance
+                    if active_maintenance is False or maintenance["until"] > active_maintenance:
+                        active_maintenance = maintenance
 
         return active_maintenance
 

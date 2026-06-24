@@ -340,11 +340,14 @@ maintenance. If a file exists that matches a check name, only that check will
 be put into maintenance.
 
 Files can (but don't need to) contain a timestamp in the form of `YYYY-MM-DD
-HH:MM:SS` to specify the time until which the maintenance is active.
+HH:MM:SS` to specify the time until which the maintenance is active. For
+example:
 
+    $ date +"%Y-%m-%d %H:%M:%S" -d "+1 hour" > /var/lib/monpy/maintenance/ALL
+ 
 You can pass a `maintenance_max` parameter to the `MonPy` instance, which will
 determine the maximum time for a maintenance period. The default is 3600
-seconds (1 hour).
+seconds (1 hour). This is measured from the `mtime` of a maintenance file.
 
 ## Include checks from other file
 
