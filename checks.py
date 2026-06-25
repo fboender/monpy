@@ -511,7 +511,6 @@ if SCAN_DEVICES_NETWORK is not False:
                         ]
                     )
 
-
 @monpy.check(daily, daily)
 def apt_security_updates_available():
     """
@@ -558,6 +557,39 @@ def checksums():
                 f"Checksum for '{path}' didn't match",
                 ident=path
             )
+
+@monpy.check(hourly * 2, daily)
+def new_setuid_binaries():
+    """
+    Check for new setuid binaries on disk.
+    """
+    monpy.log().debug("Finding setuid binaries in /")
+    cur_setuid_bins = [
+        file["path"]
+        for file
+        in collectors.files.files(
+            "/",
+            uid=0,
+            perm=stat.S_ISUID,
+            on_error=lambda path, err: None
+        )
+    ]
+
+    with monpy.state("setuid_bins", {}) as state:
+        # Check if found setuid binary was already known (present in state)
+        for cur_setuid_bin in cur_setuid_bins:
+            if cur_setuid_bin not in state:
+                monpy.alert(
+                    f"New setuid binary found: '{cur_setuid_bin}'",
+                    ident=cur_setuid_bin
+                )
+                state[cur_setuid_bin] = True
+
+        # Remove setuid binaries in state if they weren't found anymore
+        for prev_setuid_bin in list(state.keys()):
+            if prev_setuid_bin not in cur_setuid_bins:
+                state.pop(prev_setuid_bin)
+
 
 if CVE_KEYWORDS:
     @monpy.check(daily, daily, recheck_interval=minutely * 5)
