@@ -709,7 +709,6 @@ def python_venv_vulns():
     """
     run = False
     try:
-        PIPAUDIT_VENV_ROOTS
         if PIPAUDIT_VENV_ROOTS:
             run = True
     except NameError:
