@@ -333,11 +333,11 @@ You can also check the time manually in a check:
 
 Maintenance can be activated by creating a directory `maintenance` in the
 state dir and creating files in it. By default this would be
-`/var/lib/monpy/maintenance`.
+`/var/lib/monpy/maintenance`. 
 
-If a file `ALL` exists in this directory, all check will be put in
+If a file `ALL` exists in this directory, all checks will be put in
 maintenance. If a file exists that matches a check name, only that check will
-be put into maintenance.
+be put into maintenance. Checks that are in maintenance will not be executed.
 
 Files can (but don't need to) contain a timestamp in the form of `YYYY-MM-DD
 HH:MM:SS` to specify the time until which the maintenance is active. For
