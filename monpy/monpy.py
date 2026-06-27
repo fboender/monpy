@@ -296,6 +296,13 @@ class MonPy:
         self.logger.setLevel(loglevel)
         self.logger.addHandler(handler)
 
+        # Attempt to get a lock on the state file or wait and try again
+        lock_path = os.path.join(self.state_dir, "state.lock")
+        lock = Lock(lock_path)
+        if lock.lock(self.lock_wait) is not True:
+            self.logger.error("Lock time exceeded, but lock '%s' still held. Aborting.", lock_path)
+            sys.exit(1)
+
         self.maintenance = Maintenance(self.state_dir, self.maintenance_max)
 
         # Connect to state database
