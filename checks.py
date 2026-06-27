@@ -49,7 +49,7 @@ re_nginx = \
 alerter_default = Pushover(PUSHOVER_TOKENS["default"]["user"], PUSHOVER_TOKENS["default"]["app"])
 alerter_cve = Pushover(PUSHOVER_TOKENS["cve"]["user"], PUSHOVER_TOKENS["cve"]["app"])
 reporter = HTML(out_path="/var/lib/monpy/report.html", auto_refresh=60)
-monpy = MonPy(alerter=alerter_default, reporter=reporter, lock_wait=4)
+monpy = MonPy(alerter=alerter_default, reporter=reporter, lock_wait=30)
 
 ##############################################################################
 ## System resource monitoring
