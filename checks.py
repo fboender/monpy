@@ -723,7 +723,7 @@ def python_venv_vulns():
         for site_pkg_path in collectors.files.files(venv_root, name="site-packages"):
             for vuln in collectors.python.pip_audit(site_pkg_path["path"], PIPAUDIT_PATH):
                 monpy.alert(
-                    f"Package {vuln['name']} v{vuln['version']}' in virtualenv '{site_pkg_path}' vulnerable (fixed in v{vuln['fixed']}): {vuln['vulnerability_id']} {vuln['description']}",
+                    f"Package {vuln['name']} v{vuln['version']}' in virtualenv '{site_pkg_path['path']}' vulnerable (fixed in v{vuln['fixed']}): {vuln['vulnerability_id']} {vuln['description']}",
                     ident=f"{site_pkg_path}_{vuln['name']}_{vuln['version']}"
                 )
 
