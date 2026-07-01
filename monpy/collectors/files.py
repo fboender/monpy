@@ -197,13 +197,22 @@ def egrep(path, regex):
     """
     with open(path, "rb") as f:
         if hasattr(regex, 'search'):
-            return regex.search(mmap.mmap(f.fileno(),
-                                          0,
-                                          access=mmap.ACCESS_READ))
+            return regex.search(
+                mmap.mmap(
+                    f.fileno(),
+                    0,
+                    access=mmap.ACCESS_READ
+                )
+            )
         else:
-            return re.search(regex, mmap.mmap(f.fileno(),
-                                              0,
-                                              access=mmap.ACCESS_READ))
+            return re.search(
+                regex,
+                mmap.mmap(
+                    f.fileno(),
+                    0,
+                    access=mmap.ACCESS_READ
+                )
+            )
 
 def _find_inode_in_dir(inode, dir):
     for file_info in files(dir, depth=1):
