@@ -431,10 +431,8 @@ class Alert:
             self.msg.replace("\n", "\\n")
         )
         if self.should_alert() is True:
-            self.logger.warning("Sending alert...")
             self.alerter.alert(self.msg, self.check_name)
             self.last_sent = datetime.datetime.now()
-
         self._save()
 
     def __repr__(self):

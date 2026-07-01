@@ -11,6 +11,7 @@ class Pushover:
         self.logger = logging.getLogger("monpy."+__name__)
 
     def alert(self, msg, check_name):
+        self.logger.warning("Sending alert using Pushover")
         fqdn = socket.getfqdn()
         html_msg = f"MonPy @ <b>{fqdn}</b> alert for '{check_name}': {msg}"
 
