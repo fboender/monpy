@@ -259,7 +259,7 @@ for alert in alerts:
 '''
 
 logger = logging.getLogger(__name__)
-def run_code(code, vars):
+def _run_code(code, vars):
     buf = StringIO()
 
     with redirect_stdout(buf):
@@ -286,7 +286,7 @@ def tpl(tpl, vars={}):
             cur_pos += 2
         elif tpl[cur_pos] == "}" and tpl[cur_pos + 1] == "}":
             # }}
-            out += run_code(f"print(str({cur_code}), end='')", vars)
+            out += _run_code(f"print(str({cur_code}), end='')", vars)
             state = S_TEXT
             cur_code = ""
             cur_pos += 2
@@ -296,7 +296,7 @@ def tpl(tpl, vars={}):
             cur_pos += 2
         elif tpl[cur_pos] == "%" and tpl[cur_pos + 1] == "}":
             # %}
-            out += run_code(cur_code, vars)
+            out += _run_code(cur_code, vars)
             state = S_TEXT
             cur_code = ""
             cur_pos += 2
@@ -315,7 +315,6 @@ def tpl(tpl, vars={}):
 
         cur_pos += 1
     return out
-
 
 def duration(secs, inc_months=False, max_res=None):
     """
