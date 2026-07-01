@@ -239,6 +239,9 @@ for check in checks:
 
 {%
 for alert in alerts:
+    if alert["last_sent"] is None and show_unsent is False:
+        continue
+
     print(f"""
         <tr class="{alert['active']}">
             <td class="check_name">{escape(alert['check_name'])}</td>
@@ -371,9 +374,10 @@ def duration(secs, inc_months=False, max_res=None):
 
 
 class HTML:
-    def __init__(self, out_path="/var/lib/monpy/report.html", auto_refresh=60):
+    def __init__(self, out_path="/var/lib/monpy/report.html", auto_refresh=60, show_unsent=False):
         self.out_path = out_path
         self.auto_refresh = auto_refresh
+        self.show_unsent = show_unsent
 
     def render(self):
         now = datetime.datetime.now()
@@ -415,6 +419,7 @@ class HTML:
             vars={
                 "duration": duration,
                 "hostname": fqdn,
+                "show_unsent": self.show_unsent,
                 "last_run_start": run_state["last_run_start"],
                 "last_run_end": run_state["last_run_end"],
                 "auto_refresh": self.auto_refresh,
