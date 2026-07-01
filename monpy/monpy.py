@@ -434,7 +434,10 @@ class MonPy:
         Send an alert.
 
         The optional `ident` uniquely identifies the alert within a single
-        check, allowing for multiple different alerts per check.
+        check, allowing for multiple different alerts per check. E.g. if you're
+        checking multiple docker containers for health status, you should
+        include the container name or id as the `ident`, so that alerts are
+        generated for different containers.
 
         If `alerter` is specified, the alert is sent via that alerter.
         Otherwise the default configgered alerter is used.
