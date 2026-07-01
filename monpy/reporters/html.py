@@ -398,11 +398,11 @@ class HTML:
             check["status_class"] = "status_okay"
             cur.execute("SELECT * FROM alerts WHERE check_name = ?", (check["name"], ))
             for alert in [dict(row) for row in cur]:
-                # If the last time an alert was seen was on or after the last time
-                # the check was run the alert is currently active
+                # If the last time an alert was sent was on or after the last
+                # time the check was run the alert is currently active
                 alert["last_seen"] = model.str_to_dt(alert["last_seen"])
                 alert["last_sent"] = model.str_to_dt(alert["last_sent"])
-                if alert["last_seen"] >= check["last_run_start"]:
+                if alert["last_sent"] >= check["last_run_start"]:
                     check["status_class"] = "status_err"
                     alert["active"] = "active"
                 else:
