@@ -402,7 +402,7 @@ class HTML:
                 # time the check was run the alert is currently active
                 alert["last_seen"] = model.str_to_dt(alert["last_seen"])
                 alert["last_sent"] = model.str_to_dt(alert["last_sent"])
-                if alert["last_sent"] >= check["last_run_start"]:
+                if alert["last_sent"] is not None and alert["last_sent"] >= check["last_run_start"]:
                     check["status_class"] = "status_err"
                     alert["active"] = "active"
                 else:
