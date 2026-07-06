@@ -12,7 +12,7 @@ import sqlite3
 from . import __METADATA__, model
 from .lock import Lock
 from .maintenance import Maintenance
-from monpy.collectors.system import uptime
+from .collectors.system import uptime
 
 
 STATE_DIR = "/var/lib/monpy/"
