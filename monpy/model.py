@@ -388,7 +388,7 @@ class Alert:
         if self.alerter is None:
             no_alert_reason = "No alerter configured"
         elif self.count < self.alert_after:
-            no_alert_reason = "Alert count not reached"
+            no_alert_reason = f"Alert count not reached ({self.count}/{self.alert_after})"
         elif self.no_alert is True:
             no_alert_reason = "--no-alert specified"
         else:
