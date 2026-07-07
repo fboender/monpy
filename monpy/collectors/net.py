@@ -231,7 +231,11 @@ def _netstat_parse_proc(path, inode_map, ipv6=False):
             pids = inode_map.get(inode, [])
             processes = []
             for pid in pids:
-                processes.append(process_info(pid))
+                try:
+                    processes.append(process_info(pid))
+                except FileNotFoundError:
+                    # Processes can disappear while we're trying to get their info
+                    pass
 
             conn_info = {
                 "family": "ipv6" if ipv6 else "ipv4",
