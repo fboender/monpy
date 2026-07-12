@@ -3,7 +3,6 @@ import socket
 from urllib.request import Request, urlopen, HTTPError
 from urllib import error as urllib_error
 import base64
-import socket
 import ssl
 import datetime
 import subprocess
