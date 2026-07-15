@@ -25,7 +25,7 @@ from monpy.alerters import Pushover
 from monpy.reporters import HTML
 from monpy.tools import Bucket
 
-from config import *
+from config import config
 
 minutely = 60
 hourly = 60 * 60
@@ -46,8 +46,10 @@ re_nginx = \
      r"$"
 
 
-alerter_default = Pushover(PUSHOVER_TOKENS["default"]["user"], PUSHOVER_TOKENS["default"]["app"])
-alerter_cve = Pushover(PUSHOVER_TOKENS["cve"]["user"], PUSHOVER_TOKENS["cve"]["app"])
+alerter_default = Pushover(config["pushover_tokens"]["default"]["user"],
+                           config["pushover_tokens"]["default"]["app"])
+alerter_cve = Pushover(config["pushover_tokens"]["cve"]["user"],
+                       config["pushover_tokens"]["cve"]["app"])
 reporter = HTML(out_path="/var/lib/monpy/report.html", auto_refresh=60)
 monpy = MonPy(alerter=alerter_default, reporter=reporter, lock_wait=30)
 
@@ -67,21 +69,21 @@ def disk_space():
             # Bind mounted, we don't care
             continue
 
-        if mount["size_free_perc"] < DISK_SPACE_FREE_PERC:
+        if mount["size_free_perc"] < config["disk_space_free_perc"]:
             monpy.alert(
-                f"Mount '{mount['mount_point']}' less than {DISK_SPACE_FREE_PERC}% free ({mount['size_free_perc']:.1f})",
+                f"Mount '{mount['mount_point']}' less than {config['disk_space_free_perc']}% free ({mount['size_free_perc']:.1f})",
                 ident=mount["mount_point"]
             )
 
-@monpy.check(minutely, hourly, alert_after=LOAD_MAX_ALERT_AFTER)
+@monpy.check(minutely, hourly, alert_after=config["load_max_alert_after"])
 def cpu_usage():
     """
     Check CPU usage
     """
     load = collectors.system.cpu_load()
-    if load["15min"] > LOAD_MAX:
+    if load["15min"] > config["load_max"]:
         monpy.alert(
-            f"Load over last 15 minutes higher than {LOAD_MAX} ({load['15min']})"
+            f"Load over last 15 minutes higher than {config['load_max']} ({load['15min']})"
         )
 
 @monpy.check(minutely, hourly)
@@ -92,9 +94,9 @@ def low_mem():
     meminfo = collectors.system.memory()
     avail_p = meminfo["mem_available_perc"]
     avail_mb = meminfo['mem_available'] / (1024 ** 2)
-    if meminfo["mem_available_perc"] < LOW_MEM_AVAIL_PERC:
+    if meminfo["mem_available_perc"] < config["low_mem_avail_perc"]:
         monpy.alert(
-            f"Less than {LOW_MEM_AVAIL_PERC}% available memory ({avail_p:.0f}%, {avail_mb:.0f} MB)"
+            f"Less than {config['low_mem_avail_perc']}% available memory ({avail_p:.0f}%, {avail_mb:.0f} MB)"
         )
 
 @monpy.check(minutely, hourly)
@@ -103,9 +105,9 @@ def temperatures():
     Check all available system sensors for high temperatures
     """
     for t_info in collectors.system.temperatures():
-        if t_info["temperature"] > MAX_TEMPERATURE:
+        if t_info["temperature"] > config["max_temperature"]:
             monpy.alert(
-                f"Temperature for sensor '{t_info['name']}' higher than {MAX_TEMPERATURE}°C ({t_info['temperature']}°C, device: {t_info['device']}).",
+                f"Temperature for sensor '{t_info['name']}' higher than {config['max_temperature']}°C ({t_info['temperature']}°C, device: {t_info['device']}).",
                 ident=t_info['name']
             )
 
@@ -115,9 +117,9 @@ def proc_with_high_mem():
     Check for processes using a lot of memory
     """
     for process in collectors.system.processes():
-        if process.get("vmrss", 0) > PROC_HIGH_MEM_MB * (1024 ** 2):
+        if process.get("vmrss", 0) > config["proc_high_mem_mb"] * (1024 ** 2):
             ignore = False
-            for process_name in PROC_HIGH_MEM_IGNORE:
+            for process_name in config["proc_high_mem_ignore"]:
                 if process_name in process["exe"]:
                     ignore = True
                     break
@@ -127,7 +129,7 @@ def proc_with_high_mem():
 
             mem_usage_gb = process["vmrss"] / (1024 ** 2)
             monpy.alert(
-                f"Process '{process['exe']}' (pid: {process['pid']}) uses more than {PROC_HIGH_MEM_MB} MB of memory ({mem_usage_gb:.2f} MM)",
+                f"Process '{process['exe']}' (pid: {process['pid']}) uses more than {config['proc_high_mem_mb']} MB of memory ({mem_usage_gb:.2f} MM)",
                 ident=process["pid"]
             )
 
@@ -176,7 +178,7 @@ if os.path.exists("/var/lib/docker/"):
                 continue
 
             for port, host_ports in ports.items():
-                if port in ALLOW_DOCKER_WILDCARD_BINDS:
+                if port in config["allow_docker_wildcard_binds"]:
                     continue
 
                 if host_ports is None:
@@ -201,7 +203,7 @@ if os.path.exists("/var/lib/docker/"):
                 continue
 
             container_name = container["Name"].lstrip("/")
-            if container_name in ALLOW_CONTAINER_DOCKER_SOCKET:
+            if container_name in config["allow_container_docker_socket"]:
                 continue
             for mount in container["Mounts"]:
                 if mount["Source"] == "/var/run/docker.sock":
@@ -232,7 +234,7 @@ def host_ports_reachable():
     """
     Check configured host/ports to see if they are reachable
     """
-    for host_port in HOST_PORTS_REACHABLE:
+    for host_port in config["host_ports_reachable"]:
         try:
             hostname = host_port[0]
             port = host_port[1]
@@ -248,7 +250,7 @@ def http_body():
     """
     Check sites and make sure they're responding with the right data
     """
-    for check in HTTP_BODY_CHECKS:
+    for check in config["http_body_checks"]:
         url, required_status, min_response_time, found_in_body = check
         res = collectors.net.http(url)
 
@@ -275,7 +277,7 @@ def ssl_expire():
     """
     Check sites for expiring ssl certs
     """
-    for check in SSL_CERT_CHECKS:
+    for check in config["ssl_cert_checks"]:
         host, port, days = check
 
         ssl_info = collectors.net.ssl_cert(host, port)
@@ -356,9 +358,9 @@ def high_uptime():
     Check for high system uptime. Systems should be regularly rebooted
     """
     uptime = collectors.system.uptime()
-    if uptime["uptime"] > UPTIME_DAYS * 24 * 60 * 60:
+    if uptime["uptime"] > config["uptime_days"] * 24 * 60 * 60:
         monpy.alert(
-            f"Uptime is higher than {UPTIME_DAYS} days"
+            f"Uptime is higher than {config['uptime_days']} days"
         )
 
 @monpy.check(hourly, daily, recheck_interval=minutely * 5)
@@ -380,7 +382,7 @@ def executables_in_tmp():
 
         raise err
 
-    for temp_path in TEMP_PATHS:
+    for temp_path in config["temp_paths"]:
         if not os.path.exists(temp_path):
             continue
 
@@ -458,7 +460,7 @@ def listening_ports():
         # There can be more than one executable listening on the port (forks),
         # so build a list of them
         listen_exes = [process["exe"] for process in listen_port["processes"]]
-        exe_allowed = LISTEN_PORT_PROC_ALLOWED.get(port_nr, None)
+        exe_allowed = config["listen_port_proc_allowed"].get(port_nr, None)
 
         if exe_allowed not in listen_exes:
             monpy.alert(
@@ -466,14 +468,14 @@ def listening_ports():
                 ident=port_nr
             )
 
-if SCAN_DEVICES_NETWORK is not False:
+if config["scan_devices_network"] is not False:
     @monpy.check(hourly, hourly)
     def network_devices():
         """
         Scan for new devices (MAC addresses) on a network
         """
         with monpy.state("devices", {}) as state:
-            for device in collectors.net.devices(SCAN_DEVICES_NETWORK):
+            for device in collectors.net.devices(config["scan_devices_network"]):
                 monpy.log().debug(
                     "Found IP %s with MAC '%s' (hostname=%s, vendor=%s)",
                     device["ip"],
@@ -488,7 +490,7 @@ if SCAN_DEVICES_NETWORK is not False:
                 if device["mac"] not in state:
                     state[device["mac"]] = device
                     monpy.alert(
-                        f"New device found on network '{SCAN_DEVICES_NETWORK}': {device['ip']} (hostname={device['hostname']}, vendor={device['vendor']}, mac={device['mac']})",
+                        f"New device found on network '{config['scan_devices_network']}': {device['ip']} (hostname={device['hostname']}, vendor={device['vendor']}, mac={device['mac']})",
                         device["mac"]
                     )
 
@@ -551,7 +553,7 @@ def checksums():
     """
     Check file changes using checksums.
     """
-    for path, checksum in CHECKSUM_FILES:
+    for path, checksum in config["checksum_files"]:
         if collectors.files.checksum(path) != checksum:
             monpy.alert(
                 f"Checksum for '{path}' didn't match",
@@ -590,8 +592,7 @@ def new_setuid_binaries():
             if prev_setuid_bin not in cur_setuid_bins:
                 state.pop(prev_setuid_bin)
 
-
-if CVE_KEYWORDS:
+if config.get("cve_keywords", None) is not None:
     @monpy.check(daily, daily, recheck_interval=minutely * 5)
     def new_cves():
         """
@@ -599,7 +600,7 @@ if CVE_KEYWORDS:
         """
 
         for new_cve in collectors.cve.new():
-            for keyword in [k.lower() for k in CVE_KEYWORDS]:
+            for keyword in [k.lower() for k in config["cve_keywords"]]:
                 if (
                     keyword in new_cve["title"].lower() or
                     keyword in new_cve["description"].lower() or
@@ -618,127 +619,117 @@ if CVE_KEYWORDS:
 #############################################################################
 # Log monitoring
 #############################################################################
-@monpy.check(minutely, minutely)
-def log_nginx_bruteforce():
-    """
-    Check nginx logs for brute force attacks and ban the IP using nftables if
-    an attack is detected. This requires your nftables config to have an
-    `ip_block` set that bans IPs:
+if config.get("log_nginx_files", None) is not None:
+    @monpy.check(minutely, minutely)
+    def log_nginx_bruteforce():
+        """
+        Check nginx logs for brute force attacks and ban the IP using nftables if
+        an attack is detected. This requires your nftables config to have an
+        `ip_block` set that bans IPs:
 
-        table ip filter {
-            set ip_block {
-                type ipv4_addr
+            table ip filter {
+                set ip_block {
+                    type ipv4_addr
+                }
+
+                chain incoming {
+                    ip saddr @ip_block drop
+                }
             }
+        """
+        sqlite_path = os.path.join(os.path.dirname(monpy.state_path), "buckets.sqlite3")
+        bucket = Bucket(sqlite_path, "log_nginx_bruteforce")
+        banned_this_check = []
+        for log_path in config["log_nginx_files"]:
+            for request in collectors.files.log_watch(log_path, monpy, re_nginx):
+                # Ignore based on IP
+                if request["ip"] in config["log_nginx_ignore_ips"]:
+                    continue
 
-            chain incoming {
-                ip saddr @ip_block drop
-            }
-        }
-    """
-    if not LOG_NGINX_FILES:
-        return
+                # Already banned this check
+                if request['ip'] in banned_this_check:
+                    continue
 
-    sqlite_path = os.path.join(os.path.dirname(monpy.state_path), "buckets.sqlite3")
-    bucket = Bucket(sqlite_path, "log_nginx_bruteforce")
-    banned_this_check = []
-    for log_path in LOG_NGINX_FILES:
-        for request in collectors.files.log_watch(log_path, monpy, re_nginx):
-            # Ignore based on IP
-            if request["ip"] in LOG_NGINX_IGNORE_IPS:
-                continue
+                # Only ban for certain request statusses
+                if request["status"] not in ("400", "401", "403", "404", "406", "408", "502"):
+                    continue
 
-            # Already banned this check
-            if request['ip'] in banned_this_check:
-                continue
+                # Increase counter for this ip
+                ip_cnt = bucket.get(request["ip"], 0)
+                bucket.set(request["ip"], ip_cnt + 1, commit=False)
 
-            # Only ban for certain request statusses
-            if request["status"] not in ("400", "401", "403", "404", "406", "408", "502"):
-                continue
+                if ip_cnt >= config["log_nginx_ban_cnt"]:
+                    # Ban IP by adding it to the nft "ip_block" set
+                    proc = subprocess.run(
+                        ["nft", "add", "element", "ip", "filter", "ip_block", f"{{ {request['ip']} }}"],
+                        check=True
+                    )
 
-            # Increase counter for this ip
-            ip_cnt = bucket.get(request["ip"], 0)
-            bucket.set(request["ip"], ip_cnt + 1, commit=False)
+                    banned_this_check.append(request['ip'])
 
-            if ip_cnt >= LOG_NGINX_BAN_CNT:
-                # Ban IP by adding it to the nft "ip_block" set
-                proc = subprocess.run(
-                    ["nft", "add", "element", "ip", "filter", "ip_block", f"{{ {request['ip']} }}"],
-                    check=True
-                )
+                    msg = f"Banned IP '{request['ip']}' due to suspicious requests"
+                    monpy.log().warning(msg)
 
-                banned_this_check.append(request['ip'])
-
-                msg = f"Banned IP '{request['ip']}' due to suspicious requests"
-                monpy.log().warning(msg)
-
-    # Forget IP after not seeing it for 4 hours
-    bucket.vacuum(60 * 60 * 4)
-    bucket.commit()
+        # Forget IP after not seeing it for 4 hours
+        bucket.vacuum(60 * 60 * 4)
+        bucket.commit()
 
 #############################################################################
 # Misc stuff
 #############################################################################
-@monpy.check(daily, daily, recheck_interval=hourly)
-def git_repo_status():
-    """
-    Check for out-of-date git repositories
-    """
-    for path in GIT_REPO_STATUS:
-        repo = collectors.git.Repo(path, fetch=True)
-        status = repo.status()
-        if status["has_changes"] > 0:
-            monpy.alert(
-                f"Repo '{path}' has uncommited changes",
-                ident=path
-            )
-        if status["ahead"] > 0:
-            monpy.alert(
-                f"Repo '{path}' is {status['ahead']} commits ahead of remote '{status['tracking_branch']}",
-                ident=path
-            )
-        if status["behind"] > 0:
-            monpy.alert(
-                f"Repo '{path}' is {status['behind']} commits behind remote '{status['tracking_branch']}'",
-                ident=path
-            )
-
-@monpy.check(daily, daily)
-def python_venv_vulns():
-    """
-    Scan local python virtualenvs for installed vulnerable packages.
-    """
-    run = False
-    try:
-        if PIPAUDIT_VENV_ROOTS:
-            run = True
-    except NameError:
-        pass
-
-    if run is False:
-        monpy.logger.info("PIPAUDIT_VENV_ROOT undefined or empty. Not auditing any Python virtualenvs for vulnerabilities")
-        return
-
-    # Find 'site-packages' directories in venv_path
-    for venv_root in PIPAUDIT_VENV_ROOTS:
-        for site_pkg_path in collectors.files.files(venv_root, name="site-packages"):
-            for vuln in collectors.python.pip_audit(site_pkg_path["path"], PIPAUDIT_PATH):
+if config.get("git_repo_status", None) is not None:
+    @monpy.check(daily, daily, recheck_interval=hourly)
+    def git_repo_status():
+        """
+        Check for out-of-date git repositories
+        """
+        for path in config["git_repo_status"]:
+            repo = collectors.git.Repo(path, fetch=True)
+            status = repo.status()
+            if status["has_changes"] > 0:
                 monpy.alert(
-                    f"Package {vuln['name']} v{vuln['version']}' in virtualenv '{site_pkg_path['path']}' vulnerable (fixed in v{vuln['fixed']}): {vuln['vulnerability_id']} {vuln['description']}",
-                    ident=f"{site_pkg_path}_{vuln['name']}_{vuln['version']}"
+                    f"Repo '{path}' has uncommited changes",
+                    ident=path
+                )
+            if status["ahead"] > 0:
+                monpy.alert(
+                    f"Repo '{path}' is {status['ahead']} commits ahead of remote '{status['tracking_branch']}",
+                    ident=path
+                )
+            if status["behind"] > 0:
+                monpy.alert(
+                    f"Repo '{path}' is {status['behind']} commits behind remote '{status['tracking_branch']}'",
+                    ident=path
                 )
 
-@monpy.check(minutely * 5, daily)
-def syncthing_conflicts():
-    """
-    Check for conflicts in Syncthing shared folders
-    """
-    for syncthing_folder in SYNCTHING_FOLDERS:
-        for file in collectors.files.files(syncthing_folder):
-            if ".sync-conflict-" in file["path"]:
-                monpy.alert(
-                    f"Syncthing conflict detected: '{file['path']}'",
-                    ident=file["path"]
-                )
+if config.get("pipaudit_venv_roots", None) is not None:
+    @monpy.check(daily, daily)
+    def python_venv_vulns():
+        """
+        Scan local python virtualenvs for installed vulnerable packages.
+        """
+        # Find 'site-packages' directories in venv_path
+        for venv_root in config["pipaudit_venv_roots"]:
+            for site_pkg_path in collectors.files.files(venv_root, name="site-packages"):
+                for vuln in collectors.python.pip_audit(site_pkg_path["path"], config["pipaudit_path"]):
+                    monpy.alert(
+                        f"Package {vuln['name']} v{vuln['version']}' in virtualenv '{site_pkg_path['path']}' vulnerable (fixed in v{vuln['fixed']}): {vuln['vulnerability_id']} {vuln['description']}",
+                        ident=f"{site_pkg_path}_{vuln['name']}_{vuln['version']}"
+                    )
+
+if config.get("syncthing_folders", None) is not None:
+    @monpy.check(minutely * 5, daily)
+    def syncthing_conflicts():
+        """
+        Check for conflicts in Syncthing shared folders
+        """
+        for syncthing_folder in config["syncthing_folders"]:
+            for file in collectors.files.files(syncthing_folder):
+                if ".sync-conflict-" in file["path"]:
+                    monpy.alert(
+                        f"Syncthing conflict detected: '{file['path']}'",
+                        ident=file["path"]
+                    )
 
 
 if os.path.exists("checks_local.py"):
