@@ -727,6 +727,19 @@ def python_venv_vulns():
                     ident=f"{site_pkg_path}_{vuln['name']}_{vuln['version']}"
                 )
 
+@monpy.check(minutely * 5, daily)
+def syncthing_conflicts():
+    """
+    Check for conflicts in Syncthing shared folders
+    """
+    for syncthing_folder in SYNCTHING_FOLDERS:
+        for file in collectors.files.files(syncthing_folder):
+            if ".sync-conflict-" in file["path"]:
+                monpy.alert(
+                    f"Syncthing conflict detected: '{file['path']}'",
+                    ident=file["path"]
+                )
+
 
 if os.path.exists("checks_local.py"):
     # Local only checks
