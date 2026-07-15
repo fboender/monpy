@@ -229,64 +229,67 @@ if os.path.exists("/var/lib/docker/"):
 #############################################################################
 # Network and website monitoring
 #############################################################################
-@monpy.check(minutely * 5, hourly, alert_after=2)
-def host_ports_reachable():
-    """
-    Check configured host/ports to see if they are reachable
-    """
-    for host_port in config["host_ports_reachable"]:
-        try:
-            hostname = host_port[0]
-            port = host_port[1]
-            reachable = collectors.net.tcp_connect(hostname, port, raise_exception=True)
-        except (ConnectionRefusedError, TimeoutError) as err:
-            monpy.alert(
-                f"Host '{hostname}:{port}' unreachable: {str(err)}'",
-                ident=f"{hostname}:{port}"
-            )
+if config.get("host_ports_reachable", None) is not None:
+    @monpy.check(minutely * 5, hourly, alert_after=2)
+    def host_ports_reachable():
+        """
+        Check configured host/ports to see if they are reachable
+        """
+        for host_port in config["host_ports_reachable"]:
+            try:
+                hostname = host_port[0]
+                port = host_port[1]
+                reachable = collectors.net.tcp_connect(hostname, port, raise_exception=True)
+            except (ConnectionRefusedError, TimeoutError) as err:
+                monpy.alert(
+                    f"Host '{hostname}:{port}' unreachable: {str(err)}'",
+                    ident=f"{hostname}:{port}"
+                )
 
-@monpy.check(minutely * 5, hourly, alert_after=2)
-def http_body():
-    """
-    Check sites and make sure they're responding with the right data
-    """
-    for check in config["http_body_checks"]:
-        url, required_status, min_response_time, found_in_body = check
-        res = collectors.net.http(url)
+if config.get("http_body_checks", None) is not None:
+    @monpy.check(minutely * 5, hourly, alert_after=2)
+    def http_body():
+        """
+        Check sites and make sure they're responding with the right data
+        """
+        for check in config["http_body_checks"]:
+            url, required_status, min_response_time, found_in_body = check
+            res = collectors.net.http(url)
 
-        if res["status"] != required_status:
-            monpy.alert(
-                f"URL '{url} returned status {res['status']}, while {required_status} was expected ({res['reason']})'",
-                ident=f"status_{url}"
-            )
+            if res["status"] != required_status:
+                monpy.alert(
+                    f"URL '{url} returned status {res['status']}, while {required_status} was expected ({res['reason']})'",
+                    ident=f"status_{url}"
+                )
 
-        if res["response_sec"] > min_response_time:
-            monpy.alert(
-                f"URL '{url} responded slower than {min_response_time} seconds ({res['response_sec']} seconds)",
-                ident=f"slow_{url}"
-            )
+            if res["response_sec"] > min_response_time:
+                monpy.alert(
+                    f"URL '{url} responded slower than {min_response_time} seconds ({res['response_sec']} seconds)",
+                    ident=f"slow_{url}"
+                )
 
-        if found_in_body not in res["body"]:
-            monpy.alert(
-                f"URL '{url} response body didn't contain required text '{found_in_body}'",
-                ident=f"body_{url}"
-            )
+            if found_in_body not in res["body"]:
+                monpy.alert(
+                    f"URL '{url} response body didn't contain required text '{found_in_body}'",
+                    ident=f"body_{url}"
+                )
 
-@monpy.check(daily, daily)
-def ssl_expire():
-    """
-    Check sites for expiring ssl certs
-    """
-    for check in config["ssl_cert_checks"]:
-        host, port, days = check
+if config.get("ssl_cert_checks", None) is not None:
+    @monpy.check(daily, daily)
+    def ssl_expire():
+        """
+        Check sites for expiring ssl certs
+        """
+        for check in config["ssl_cert_checks"]:
+            host, port, days = check
 
-        ssl_info = collectors.net.ssl_cert(host, port)
-        subject = ssl_info["subject"]["commonName"]
-        if ssl_info["expires_days"] <= days:
-            monpy.alert(
-                f"SSL certificate for '{host}:{port}' (CN={subject}) expires in {ssl_info['expires_days']} days ({ssl_info['not_after_dt']})",
-                ident=f"{host}:{port}"
-            )
+            ssl_info = collectors.net.ssl_cert(host, port)
+            subject = ssl_info["subject"]["commonName"]
+            if ssl_info["expires_days"] <= days:
+                monpy.alert(
+                    f"SSL certificate for '{host}:{port}' (CN={subject}) expires in {ssl_info['expires_days']} days ({ssl_info['not_after_dt']})",
+                    ident=f"{host}:{port}"
+                )
 
 @monpy.check(minutely * 15, daily)
 def external_ip_changed():
@@ -468,7 +471,7 @@ def listening_ports():
                 ident=port_nr
             )
 
-if config["scan_devices_network"] is not False:
+if config.get("scan_devices_network", None) is not None:
     @monpy.check(hourly, hourly)
     def network_devices():
         """
@@ -714,7 +717,7 @@ if config.get("pipaudit_venv_roots", None) is not None:
                 for vuln in collectors.python.pip_audit(site_pkg_path["path"], config["pipaudit_path"]):
                     monpy.alert(
                         f"Package {vuln['name']} v{vuln['version']}' in virtualenv '{site_pkg_path['path']}' vulnerable (fixed in v{vuln['fixed']}): {vuln['vulnerability_id']} {vuln['description']}",
-                        ident=f"{site_pkg_path}_{vuln['name']}_{vuln['version']}"
+                        ident=f"{site_pkg_path['path']}_{vuln['name']}_{vuln['version']}"
                     )
 
 if config.get("syncthing_folders", None) is not None:
