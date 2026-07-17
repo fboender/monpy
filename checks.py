@@ -219,6 +219,10 @@ if os.path.exists("/var/lib/docker/"):
         """
         outdated_containers = []
         for container in collectors.docker.containers():
+            if container["State"]["Running"] is not True:
+                # We don't care of the container isn't running
+                continue
+
             monpy.log().debug("Checking container '%s' for updates", container["Name"].lstrip('/'))
             if collectors.docker.container_outdated(container):
                 monpy.alert(
