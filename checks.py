@@ -731,6 +731,7 @@ if config.get("syncthing_folders", None) is not None:
         Check for conflicts in Syncthing shared folders
         """
         for syncthing_folder in config["syncthing_folders"]:
+            monpy.log().debug("Checking path '%s' for SyncThing conflicts", syncthing_folder)
             for file in collectors.files.files(syncthing_folder):
                 if ".sync-conflict-" in file["path"]:
                     monpy.alert(
