@@ -144,7 +144,8 @@ if os.path.exists("/var/lib/docker/"):
         Check for unhealthy containers.
         """
         for container in collectors.docker.containers():
-            name = container['Name'].lstrip('/')
+            container_name = container['Name'].lstrip('/')
+            monpy.log().debug("Checking container '%s' health", container_name)
             if "Health" not in container["State"]:
                 # No health check
                 continue
@@ -157,8 +158,8 @@ if os.path.exists("/var/lib/docker/"):
 
             if health_status != "healthy":
                 monpy.alert(
-                   f"Container '{name}' is not healthy ({health_status})",
-                    ident=container["Id"]
+                   f"Container '{container_name}' is not healthy ({health_status})",
+                    ident=container_name
                 )
 
     @monpy.check(hourly, daily)
@@ -168,11 +169,9 @@ if os.path.exists("/var/lib/docker/"):
         are not configured in ALLOW_DOCKER_WILDCARD_BINDS. This bypasses the
         firewall
         """
-        for container in collectors.docker.containers():
-            if container["State"]["Running"] is not True:
-                # We don't care of the container isn't running
-                continue
-
+        for container in collectors.docker.containers(running=True):
+            container_name = container["Name"].lstrip("/")
+            monpy.log().debug("Checking container '%s' for ports bound on 0.0.0.0", container_name)
             ports = container["NetworkSettings"]["Ports"]
             if ports is None:
                 continue
@@ -187,8 +186,8 @@ if os.path.exists("/var/lib/docker/"):
                 for host_port in host_ports:
                     if host_port["HostIp"] == "0.0.0.0":
                         monpy.alert(
-                            f"Container '{container['Name'].lstrip('/')}' exposes port {port} on all interfaces (0.0.0.0)",
-                            ident=f"{container['Name']}-{port}",
+                            f"Container '{container_name}' exposes port {port} on all interfaces (0.0.0.0)",
+                            ident=f"{container_name}-{port}",
                         )
 
     @monpy.check(hourly, daily)
@@ -197,18 +196,15 @@ if os.path.exists("/var/lib/docker/"):
         Check if a docker container mounts the docker socket into it. This is a
         security smell
         """
-        for container in collectors.docker.containers():
-            if container["State"]["Running"] is not True:
-                # We don't care of the contaiener isn't running
-                continue
-
+        for container in collectors.docker.containers(running=True):
             container_name = container["Name"].lstrip("/")
+            monpy.log().debug("Checking container '%s' for mounted docker socket", container_name)
             if container_name in config["allow_container_docker_socket"]:
                 continue
             for mount in container["Mounts"]:
                 if mount["Source"] == "/var/run/docker.sock":
                     monpy.alert(
-                        f"Container '{container['Name'].lstrip('/')}' mounts the docker socket in the container",
+                        f"Container '{container_name}' mounts the docker socket in the container",
                         ident=container_name
                     )
 
@@ -218,16 +214,13 @@ if os.path.exists("/var/lib/docker/"):
         Check for container updates
         """
         outdated_containers = []
-        for container in collectors.docker.containers():
-            if container["State"]["Running"] is not True:
-                # We don't care of the container isn't running
-                continue
-
-            monpy.log().debug("Checking container '%s' for updates", container["Name"].lstrip('/'))
+        for container in collectors.docker.containers(running=True):
+            container_name = container["Name"].lstrip("/")
+            monpy.log().debug("Checking container '%s' for updates", container_name)
             if collectors.docker.container_outdated(container):
                 monpy.alert(
-                    f"Container '{container['Name'].lstrip('/')}' has an update available",
-                    ident=container["Name"]
+                    f"Container '{container_name}' has an update available",
+                    ident=container_name
                 )
 
 #############################################################################
