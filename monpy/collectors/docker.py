@@ -19,9 +19,13 @@ def container(container_id):
     return container_info
 
 
-def containers():
+def containers(running=None):
     """
     Docker container information.
+
+    If `running` is True, yield only running containers. If `running` is False,
+    return only non-running containers. Otherwise (default) if `running` is
+    None, return all containers.
 
     Yields the same information as `docker inspect <CONTAINER_ID>`. Example
     (heavily reduced for brevity and clarity):
@@ -129,7 +133,10 @@ def containers():
         }
     """
     for container_id in os.listdir(CONTAINER_DIR):
-        yield container(container_id)
+        container_info = container(container_id)
+        if running is None or container_info["State"]["Running"] is running:
+            yield container_info
+
 
 
 def container_outdated(container_info):
