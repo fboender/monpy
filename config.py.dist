@@ -62,6 +62,15 @@ config = {
         "/var/lib/php/sessions",
         "/var/lib/BrlAPI",
     ],
+    # Ignore patterns for things in temp paths
+    "temp_paths_ignore": [
+        # Python standalone executables
+        "/tmp/_MEI*",
+        # Pyinfra may leave temp executables behind
+        "/tmp/pyinfra-sudo-askpass-*",
+        # RetroArch does something, idk
+        "/dev/shm/pulse-shm-*",
+    ],
 
     # Minimum load over last 15 minutes higher than 0.9
     "load_max": 0.95,

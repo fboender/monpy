@@ -18,6 +18,7 @@ import sys
 import stat
 import datetime
 import subprocess
+import fnmatch
 
 from monpy import MonPy
 from monpy import collectors
@@ -391,13 +392,15 @@ def executables_in_tmp():
             if not is_exec:
                 continue
 
-            # Ignore Python standalone executables.
-            # FIXME: Would be better to actually checvk for specific standalone
-            # executables (such as 'borg'), but that's tricky for now.
-            if "_MEI" in file["path"]:
-                continue
-            # Pyinfra may leave temp executables behind
-            if file["path"].startswith("/tmp/pyinfra-sudo-askpass-"):
+            # Match current path to all configured ignore patterns. Ignore if a
+            # match is found.
+            if any(
+                [
+                    fnmatch.fnmatch(file["path"], ignore_pattern)
+                    for ignore_pattern
+                    in config.get("temp_paths_ignore", [])
+                ]
+            ):
                 continue
 
             monpy.alert(
