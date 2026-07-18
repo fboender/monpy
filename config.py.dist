@@ -1,145 +1,160 @@
+import os
+import xml.dom.minidom
 from monpy.collectors import files
 
-PUSHOVER_TOKENS = {
-    "default": {
-        "user": "TOKEN",
-        "app": "TOKEN"
+config = {
+    # Pushover notification tokens
+    "pushover_tokens": {
+        "default": {
+            "user": "TOKEN",
+            "app": "TOKEN"
+        },
+        "cve": {
+            "user": "TOKEN",
+            "app": "TOKEN",
+        },
     },
-    "cve": {
-        "user": "TOKEN",
-        "app": "TOKEN",
+
+    # Minimal amount of required free disk space in %
+    "disk_space_free_perc": 10,
+
+    # Minimal amount of available (free) memory in %
+    "low_mem_avail_perc": 10,
+
+    # Maximum temperature of any sensor
+    "max_temperature": 70,
+
+    # Processes using more than X amount of memory. Some processes can be ignored
+    "proc_high_mem_mb": 500,
+    "proc_high_mem_ignore": [
+        "/usr/lib/firefox/firefox",
+        "/usr/bin/coolforkit-caps",
+        "/usr/bin/keepassxc",
+        "/usr/local/bin/borg",
+    ],
+
+    # Max uptime in days. Periodic reboots are required to update the kernel
+    "uptime_days": 31,
+
+    # Many containers are misconfigured and listen on 0.0.0.0, which bypasess the
+    # linux firewall and makes the containers available on the internal/public
+    # network
+    "allow_docker_wildcard_binds": [
+        #"3478/tcp",   # NextCloud Talk
+        #"3478/udp",   # NextCloud Talk
+    ],
+
+    # Mounting the docker socket into a container is highly dangerous as it can
+    # lead to privilege escalations
+    "allow_container_docker_socket": [
+    ],
+
+    # World-writable temp paths to scan for weird things. Malware often writes to
+    # temp paths
+    "temp_paths": [
+        "/tmp",
+        "/var/tmp",
+        "/run/user"
+        "/run/screen",
+        "/run/lock",
+        "/dev/mqueue",
+        "/dev/shm",
+        "/var/lib/php/sessions",
+        "/var/lib/BrlAPI",
+    ],
+
+    # Minimum load over last 15 minutes higher than 0.9
+    "load_max": 0.95,
+    "load_max_alert_after": 5,
+
+    # TCP connection tests
+    "host_ports_reachable": [
+        ("sharky.electricmonk.nl", 80),
+        ("sharky.electricmonk.nl", 443),
+        ("192.168.1.1", 80),
+    ],
+
+    # Scan network for devices with an unknown MAC address (Alert about new devices
+    # on network)
+    "scan_devices_network": "192.168.1.0/24",
+
+    # Check HTTP responses for correct HTTP status and presence of text in the body
+    # Format:
+    #   ("<URL>", <Expected response code>, <minimum response time (sec)>, <text expected in body>)
+    "http_body_checks": [
+        ("https://www.electricmonk.nl/log/", 200, 2, "Programmer, DevOpper, Open Source enthusiast"),
+    ],
+
+    # Check SSL certs for expiration in X days
+    "ssl_cert_checks": [
+        ("www.electricmonk.nl", 443, 7),
+    ],
+
+    # Check that locally checked out git repos are not behind (missing updates)
+    "git_repo_status": [
+        "/opt/apps/monpy",
+        "/opt/apps/postfix2pushover",
+    ],
+
+    # List of processes that are allowed to listen on ports on all interfaces
+    # (0.0.0.0 / ::)
+    "listen_port_proc_allowed": {
+        22: "/usr/sbin/sshd",
+        25: "/usr/lib/postfix/sbin/master",
+        80: "/usr/sbin/nginx",
+        139: "/usr/sbin/smbd",
+        443: "/usr/sbin/nginx",
+        445: "/usr/sbin/smbd",
+        # Transmission
+        6881: "/usr/bin/transmission-daemon",
+        9091: "/usr/bin/transmission-daemon",
+        # Syncthing
+        22000: "/opt/apps/syncthing/syncthing",
     },
+
+    # Check these nginx log files for brute force attemps
+    "log_nginx_files": [
+        file["path"]
+        for file
+        in files.files("/var/www/", name="access.log", depth=4)
+    ],
+    "log_nginx_ignore_ips": [
+        "87.212.218.241",
+    ],
+    # Ban after 10 invalid / suspicious requests
+    "log_nginx_ban_cnt": 10,
+
+    # Check sum files (get'it?)
+    # Format:
+    #   (path, checksum)
+    "checksum_files": [
+        ("/home/fboender/.bashrc", "6ea845b53cdbbd0e51bc49afd07d0d6377a8a2d3ef524b8c1321e5145fa80181"),
+        ("/home/fboender/.bash_profile", "6915e3b03c05e69c3b15073adfecb6f245c5063a2df806c4b45a7a9ea8d8d427"),
+    ],
+
+    # Keywords to match against newly published CVEs. The CVE's title, vendor,
+    # product and description will all be searched for these keywords.
+    "cve_keywords": [
+        "docker",
+        "readeck",
+        "syncthing",
+    ],
+
+    # Find site-packages dirs in PIPAUDIT_VENV_ROOT and audit them with pip-audit
+    "pipaudit_path": "/opt/pyenvs/system/bin/pip-audit",
+    "pipaudit_venv_roots": [
+        "/opt/pyenvs/",
+    ],
+
 }
 
-# Minimal amount of required free disk space in %
-DISK_SPACE_FREE_PERC = 10
-
-# Minimal amount of available (free) memory in %
-LOW_MEM_AVAIL_PERC = 10
-
-# Maximum temperature of any sensor
-MAX_TEMPERATURE = 60
-
-# Processes using more than X amount of memory. Some processes can be ignored
-PROC_HIGH_MEM_MB = 500
-PROC_HIGH_MEM_IGNORE = [
-    "/usr/lib/firefox/firefox",
-    "/usr/bin/coolforkit-caps",
-    "/usr/bin/keepassxc",
-]
-
-# Max uptime in days. Periodic reboots are required to update the kernel
-UPTIME_DAYS = 31
-
-# Many containers are misconfigured and listen on 0.0.0.0, which bypasess the
-# linux firewall and makes the containers available on the internal/public
-# network
-ALLOW_DOCKER_WILDCARD_BINDS = [
-    "3478/tcp",   # NextCloud Talk
-    "3478/udp",   # NextCloud Talk
-]
-
-# Mounting the docker socket into a container is highly dangerous as it can
-# lead to privilege escalations
-ALLOW_CONTAINER_DOCKER_SOCKET = [
-]
-
-# World-writable temp paths to scan for weird things. Malware often writes to
-# temp paths
-TEMP_PATHS = [
-    "/tmp",
-    "/var/tmp",
-    "/run/user"
-    "/run/screen",
-    "/run/lock",
-    "/dev/mqueue",
-    "/dev/shm",
-    "/var/lib/php/sessions",
-    "/var/lib/BrlAPI",
-]
-
-# Minimum load over last 15 minutes higher than 0.9
-LOAD_MAX = 0.9
-LOAD_MAX_ALERT_AFTER = 1
-
-# TCP connection tests
-HOST_PORTS_REACHABLE = [
-    ("sharky.electricmonk.nl", 80),
-    ("sharky.electricmonk.nl", 443),
-    ("192.168.1.1", 80),
-]
-
-# Scan network for devices with an unknown MAC address (Alert about new devices
-# on network)
-SCAN_DEVICES_NETWORK = False
-#SCAN_DEVICES_NETWORK = "192.168.1.0/24"
-
-# Check HTTP responses for correct HTTP status and presence of text in the body
-# Format:
-#   ("<URL>", <Expected response code>, <minimum response time (sec)>, <text expected in body>)
-HTTP_BODY_CHECKS = [
-    ("https://www.electricmonk.nl/log/", 200, 2, "Programmer, DevOpper, Open Source enthusiast"),
-]
-
-# Check SSL certs for expiration in X days
-SSL_CERT_CHECKS = [
-    ("www.electricmonk.nl", 443, 7),
-    ("cloud.electricmonk.nl", 443, 9),
-]
-
-# Check that locally checked out git repos are not behind (missing updates)
-GIT_REPO_STATUS = [
-    "/opt/apps/monpy",
-    "/opt/apps/postfix2pushover",
-]
-
-# List of processes that are allowed to listen on ports on all interfaces
-# (0.0.0.0 / ::)
-LISTEN_PORT_PROC_ALLOWED = {
-    22: "/usr/sbin/sshd",
-    25: "/usr/lib/postfix/sbin/master",
-    80: "/usr/sbin/nginx",
-    139: "/usr/sbin/smbd",
-    443: "/usr/sbin/nginx",
-    445: "/usr/sbin/smbd",
-    2812: "/usr/bin/monit",
-    6881: "/usr/bin/transmission-daemon",
-    3478: "/usr/bin/docker-proxy",
-    8080: "/usr/bin/docker-proxy",
-    9091: "/usr/bin/transmission-daemon",
-}
-
-# Check these nginx log files for brute force attemps
-LOG_NGINX_FILES = [
-    file["path"]
-    for file in files("/var/www/", name="access.log", depth=4)
-]
-LOG_NGINX_IGNORE_IPS = [
-    "10.20.30.40",
-]
-# Ban after 10 invalid / suspicious requests
-LOG_NGINX_BAN_CNT = 10
-
-# Check sum files (get'it?)
-# Format:
-#   (path, checksum)
-CHECKSUM_FILES = [
-    ("/home/fboender/.bashrc", "a29af56eec19e15f14296f508d9ce184acc0c77dd0e5d98deea4993bd9537926"),
-]
-
-# Keywords to match against newly published CVEs. The CVE's title, vendor,
-# product and description will all be searched for these keywords.
-CVE_KEYWORDS = [
-    "nextcloud",
-    "postgres",
-    "docker",
-    "httpd",
-    "redis",
-    "nginx"
-]
-
-# Find site-packages dirs in PIPAUDIT_VENV_ROOT and audit them with pip-audit
-#PIPAUDIT_PATH="/home/fboender/.pyenvs/common/bin/pip-audit"
-#PIPAUDIT_VENV_ROOTS=[
-#    "/home/fboender/.pyenvs/",
-#]
+# Syncthing folders to watch for conflicts
+config["syncthing_folders"] = []
+st_config_path = os.path.expanduser("~/.local/state/syncthing/config.xml")
+if os.path.exists(st_config_path):
+    with open(st_config_path) as fh:
+        dom = xml.dom.minidom.parseString(fh.read())
+        for elem in dom.getElementsByTagName("folder"):
+            path = os.path.expanduser(elem.getAttribute("path"))
+            if path != "":
+                config["syncthing_folders"].append(path)
