@@ -217,7 +217,6 @@ The `MonPy` class is the main orchestrator. It registers checks (using the
 checks, handlers maintenance and state and sends alerts:
 
 * `MonPy.check()`: Decorator function for registering checks.
-  previous check values.
 * `MonPy.alert()`: Send alerts if `alert_interval` has been reached for the
   alert.
 * `MonPy.state()`: Keep custom state for checks.
