@@ -13,6 +13,7 @@
     * [Reporters](#reporters)
 * [How-to](#how-to)
     * [Run check at specific time](#run-check-at-specific-time)
+    * [Maintenance](#maintenance)
     * [Include checks from other file](#include-checks-from-other-file)
 * [License and contributing](#license-and-contributing)
 <!-- EOTOC -->
@@ -222,12 +223,57 @@ checks, handlers maintenance and state and sends alerts:
 * `MonPy.state()`: Keep custom state for checks.
 * `MonPy.log()`: Check logging instance
 
+Definition:
+
+    class MonPy:
+        def __init__(self, alerter=None, reporter=None, state_dir=STATE_DIR,
+                     lock_wait=None, prune_check_age=86400*2,
+                     prune_alert_age=86400*2, boot_wait=60*2,
+                     maintenance_max=3600):
+            """
+            Main MonPy class that orchestrates the running of checks, alerting and
+            reporting.
+
+            If `alerter` is specified, MonPy will send alerts via that alerter. It
+            should be an instance of a class with an `alert()` method with
+            signature:
+
+                def alert(self, msg, check_name):
+                    ...
+
+            If `reporter` is specified, MonPy will call it after a completed run.
+            If should be an instance of a class with a method with signature:
+
+                def render(self, state):
+                    ...
+
+            If `state_dir` is specified, that dir will be used to store check and
+            alert state.  Otherwise the default will be used.
+
+            If `lock_wait` (int or float) is specified, MonPy will wait `lock_wait`
+            seconds and retry in case the state file is locked.
+
+            `prune_check_age` is the number of seconds after which the state of
+            unseen checks are pruned.
+
+            `prune_alert_age` is the number of seconds after which old alerts are
+            pruned.
+
+            `boot_wait` delays running checks for X seconds after the system has
+            rebooted. This is to prevent false-positives such as unhealthy services
+            that haven't started properly yet after a reboot.
+
+            `maintenance_max` is the maximum amount of time all (or a specific)
+            checks can be in maintenance. If it is exceeded, the maintenance will
+            be ignored.
+            """
+
 ## The `check()` decorator
 
 Checks are written in Python as functions decorated with the `MonPy.check()`
 decorator:
 
-    def check(self, check_interval, alert_interval=0, alert_after=1,
+    def check(self, check_interval=60, alert_interval=0, alert_after=1,
               recheck_interval=None):
         """
         Function decorator to register a function as a monitoring check.
