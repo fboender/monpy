@@ -579,6 +579,7 @@ def new_setuid_binaries():
             perm=stat.S_ISUID,
             on_error=lambda path, err: None
         )
+        if not file["path"].startswith("/var/lib/containerd/")
     ]
 
     with monpy.state("setuid_bins", {}) as state:
