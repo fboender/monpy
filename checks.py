@@ -235,13 +235,12 @@ if config.get("host_ports_reachable", None) is not None:
         Check configured host/ports to see if they are reachable
         """
         for host_port in config["host_ports_reachable"]:
-            try:
-                hostname = host_port[0]
-                port = host_port[1]
-                reachable = collectors.net.tcp_connect(hostname, port, raise_exception=True)
-            except (ConnectionRefusedError, TimeoutError) as err:
+            hostname = host_port[0]
+            port = host_port[1]
+            result = collectors.net.tcp_connect(hostname, port)
+            if result["connected"] is not True:
                 monpy.alert(
-                    f"Host '{hostname}:{port}' unreachable: {str(err)}'",
+                    f"Host '{hostname}:{port}' unreachable: {str(result['exception'])}'",
                     ident=f"{hostname}:{port}"
                 )
 

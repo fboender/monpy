@@ -27,7 +27,7 @@ TCP_STATES = {
     "0B": "CLOSING",
 }
 
-def tcp_connect(host, port, timeout=3, raise_exception=False):
+def tcp_connect(host, port, timeout=3):
     """
     Test a TCP connection to a port.
 
@@ -38,22 +38,43 @@ def tcp_connect(host, port, timeout=3, raise_exception=False):
     `timeout` sets the timeout for the connection. If set to `None`, timeout is
     disabled.
 
-    If `raise_exception` is set to True, the exception (if any) is raised.
+    Returns:
 
-    Returns `True` if the connection was established or `False` if not.
+        {
+            "connected": True         # Whether connection was established
+            "response_sec": 0.234     # Response time (seconds)
+            "exception": <Exception>  # Exception if it was raised. Also sets "connected" to False
+        }
     """
+    result = {
+        "connected": False,
+        "response_sec": -1,
+        "exception": None
+    }
+
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.settimeout(timeout)
     logger.debug("Testing TCP connect to %s:%s (timeout=%s)", host, port, timeout)
+    start = datetime.datetime.now()
     try:
         s.connect((host, port))
         logger.debug("Connection to %s:%s successfull", host, port)
-        return True
-    except (ConnectionRefusedError, TimeoutError, socket.gaierror):
-        if raise_exception is True:
-            raise
-        else:
-            return False
+        result.update(
+            {
+                "connected": True,
+            }
+        )
+    except Exception as err:
+        result.update(
+            {
+                "connected": False,
+                "exception": err,
+            }
+        )
+    end = datetime.datetime.now()
+    result["response_sec"] = (end - start).total_seconds()
+
+    return result
 
 def http(url,
          method="GET",
