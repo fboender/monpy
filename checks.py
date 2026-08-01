@@ -478,7 +478,17 @@ if config.get("scan_devices_network", None) is not None:
         Scan for new devices (MAC addresses) on a network
         """
         with monpy.state("devices", {}) as state:
+            # Set all previously seen devices to offline
+            for device_mac, device_info in state.items():
+                device_info["status"] = "down"
+                device_info["name"] = ""
+
+            # Scan for new devices
             for device in collectors.net.devices(config["scan_devices_network"]):
+                if device["mac"] is None:
+                    # Localhost doesn't return MAC
+                    device["mac"] = "94:C6:91:A3:63:45"
+
                 monpy.log().debug(
                     "Found IP %s with MAC '%s' (hostname=%s, vendor=%s)",
                     device["ip"],
@@ -486,20 +496,26 @@ if config.get("scan_devices_network", None) is not None:
                     device["hostname"],
                     device["vendor"]
                 )
-                if device["mac"] is None:
-                    continue
-
                 # Alert only once by keeping the mac in monpy status
                 if device["mac"] not in state:
-                    state[device["mac"]] = device
                     monpy.alert(
                         f"New device found on network '{config['scan_devices_network']}': {device['ip']} (hostname={device['hostname']}, vendor={device['vendor']}, mac={device['mac']})",
                         device["mac"]
                     )
 
+                # Update state
+                state[device["mac"]] = device
+
+            # Nap device MAC address to name
+            for device in state.values():
+                if device["mac"] in config["device_mac_name_map"]:
+                    device["name"] = config["device_mac_name_map"][device["mac"]]
+                else:
+                    device["name"] = ""
+
             # Write CSV file of devices
             import csv
-            headers = ["MAC", "IP", "Status", "hostname", "vendor"]
+            headers = ["MAC", "IP", "Status", "name", "hostname", "vendor"]
 
             csv_path = os.path.join(monpy.state_dir, "devices.csv")
             with open(csv_path, "w", newline="", encoding="utf-8") as f:
@@ -511,6 +527,7 @@ if config.get("scan_devices_network", None) is not None:
                             device["mac"],
                             device["ip"],
                             device["status"],
+                            device["name"],
                             device["hostname"],
                             device["vendor"]
                         ]
