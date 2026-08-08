@@ -38,7 +38,7 @@ def pip_audit(site_packages_path, pip_audit_path="pip-audit"):
         proc.check_returncode()
 
     for dependency in json.loads(proc.stdout)["dependencies"]:
-        for vulnerability in dependency["vulns"]:
+        for vulnerability in dependency.get("vulns", []):
             yield {
                 "name": dependency["name"],
                 "version": dependency["version"],
