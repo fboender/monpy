@@ -574,6 +574,7 @@ def checksums():
     Check file changes using checksums.
     """
     for path, checksum in config["checksum_files"]:
+        monpy.log().debug("Checksumming '%s'", path)
         if collectors.files.checksum(path) != checksum:
             monpy.alert(
                 f"Checksum for '{path}' didn't match",
