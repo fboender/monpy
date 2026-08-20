@@ -381,6 +381,10 @@ def executables_in_tmp():
         ):
             return
 
+        # Sometimes files disappear while we're running
+        if isinstance(err, FileNotFoundError):
+            return
+
         raise err
 
     for temp_path in config["temp_paths"]:
