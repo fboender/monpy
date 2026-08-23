@@ -687,7 +687,7 @@ if config.get("log_nginx_files", None) is not None:
                 if ip_cnt >= config["log_nginx_ban_cnt"]:
                     # Ban IP by adding it to the nft "ip_block" set
                     proc = subprocess.run(
-                        ["nft", "add", "element", "ip", "filter", "ip_block", f"{{ {request['ip']}/16 }}"],
+                        ["nft", "add", "element", "ip", "filter", "ip_block", f"{{ {request['ip']} }}"],
                         check=True
                     )
 
