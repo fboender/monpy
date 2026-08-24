@@ -412,7 +412,7 @@ def executables_in_tmp():
                 ident=file["path"]
             )
 
-@monpy.check(minutely, hourly)
+@monpy.check(minutely * 15, hourly)
 def nftables_default_policy():
     """
     Check that the nftables firewall has default rules to drop input
