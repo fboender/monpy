@@ -26,12 +26,12 @@ def process_info(pid, extend=False):
 
         try:
             process["cwd"] = os.readlink(os.path.join(fullpath, "cwd"))
-        except FileNotFoundError:
+        except (FileNotFoundError, ProcessLookupError):
             pass
 
         try:
             process["exe"] = os.readlink(os.path.join(fullpath, "exe"))
-        except FileNotFoundError:
+        except (FileNotFoundError, ProcessLookupError):
             pass
 
         if extend is True:
