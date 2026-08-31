@@ -412,6 +412,26 @@ def executables_in_tmp():
                 ident=file["path"]
             )
 
+@monpy.check(hourly, daily)
+def bin_ownership():
+    """
+    Check various binary locations for improper ownership. These could be used
+    by an attacker to overwrite binaries we run, which can lead to privilege
+    escalation.
+    """
+    for path, wrong_owner in config.get("bin_ownership", []):
+        problem = False
+        for file in collectors.files.files(path):
+            if file["uid"] == wrong_owner or file["gid"] == wrong_owner:
+                problem = True
+                break
+
+        if problem:
+            monpy.alert(
+                f"Path '{path}' contains file(s) with wrong ownership: '{file['path']}' owned by uid/gid {wrong_owner}",
+                ident=file["path"]
+            )
+
 @monpy.check(minutely * 15, hourly)
 def nftables_default_policy():
     """
