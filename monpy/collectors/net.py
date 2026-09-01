@@ -253,7 +253,7 @@ def _netstat_parse_proc(path, inode_map, ipv6=False):
             for pid in pids:
                 try:
                     processes.append(process_info(pid))
-                except FileNotFoundError:
+                except (FileNotFoundError, ProcessLookupError):
                     # Processes can disappear while we're trying to get their info
                     pass
 

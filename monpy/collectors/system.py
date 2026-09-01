@@ -125,7 +125,7 @@ def processes():
         try:
             process = process_info(pid, extend=True)
             yield process
-        except FileNotFoundError:
+        except (FileNotFoundError, ProcessLookupError):
             # Something went wrong with getting the process info. It probably
             # went away. Ignore it.
             continue
