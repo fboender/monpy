@@ -84,8 +84,8 @@ def dt_to_str(dt):
 
 class Check:
     def __init__(self, name, func, desc, check_interval, recheck_interval,
-                 alert_interval, alert_after, alerter, force, no_alert,
-                 no_suppress):
+                 alert_interval, alert_after, exception_as_alert, alerter,
+                 force, no_alert, no_suppress):
         self.logger = logging.getLogger(f"monpy.check.{name}")
 
         # Check information
@@ -96,6 +96,7 @@ class Check:
         self.recheck_interval = recheck_interval
         self.alert_interval = alert_interval
         self.alert_after = alert_after
+        self.exception_as_alert = exception_as_alert
         self.alerter = alerter
 
         # Commandline flags
@@ -216,14 +217,19 @@ class Check:
         if should_check is True:
             self.last_run_start = datetime.datetime.now()
             self.logger.info("Running check '%s'", self.name)
-            return_value = None
             try:
                 self.func()
             except Exception as err:
                 result = err
                 self.logger.exception("Exception while running check '%s': %s", self.name, err)
-                # Write exception to stderr, which will trigger a cron error
-                traceback.print_exc()
+                if self.exception_as_alert is True:
+                    # Send exception as alert
+                    err_class = err.__class__.__name__
+                    msg = f"Check '{self.name}' raised a {err_class} exception: {err}"
+                    self.alert(msg, f"_exception_{err_class}")
+                else:
+                    # Write exception to stderr, which will trigger a cron error
+                    traceback.print_exc()
             finally:
                 # Always save current state, otherwise an exception occuring
                 # will cause the check to be executed every run.

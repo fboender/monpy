@@ -23,7 +23,7 @@ class MonPy:
     def __init__(self, alerter=None, reporter=None, state_dir=STATE_DIR,
                  lock_wait=None, prune_check_age=86400*2,
                  prune_alert_age=86400*2, boot_wait=60*2,
-                 maintenance_max=3600):
+                 maintenance_max=3600, exception_as_alert=False):
         """
         Main MonPy class that orchestrates the running of checks, alerting and
         reporting.
@@ -70,6 +70,7 @@ class MonPy:
         self.prune_alert_age = prune_alert_age
         self.boot_wait = boot_wait
         self.maintenance_max = maintenance_max
+        self.exception_as_alert = exception_as_alert
 
         self.checks = []
 
@@ -151,7 +152,8 @@ class MonPy:
         model.init_db(conn)
 
     def _register(self, func, check_interval=60, alert_interval=0,
-                  alert_after=1, recheck_interval=None):
+                  alert_after=1, recheck_interval=None,
+                  exception_as_alert=None):
         """
         Register a check function.
 
@@ -163,6 +165,10 @@ class MonPy:
         if func.__doc__ is not None:
             desc = " ".join([s.strip() for s in func.__doc__.strip().splitlines()])
 
+        # Apply global check defaults
+        if exception_as_alert is None:
+            exception_as_alert = self.exception_as_alert
+
         check = model.Check(
             name=name,
             func=func,
@@ -171,6 +177,7 @@ class MonPy:
             recheck_interval=recheck_interval,
             alert_interval=alert_interval,
             alert_after=alert_after,
+            exception_as_alert=exception_as_alert,
             alerter=self.alerter,
             force=self.args.force,
             no_alert=self.args.no_alert,
@@ -180,7 +187,7 @@ class MonPy:
         self.logger.debug("Registered '%s'", check)
 
     def check(self, check_interval=60, alert_interval=0, alert_after=1,
-              recheck_interval=None):
+              recheck_interval=None, exception_as_alert=False):
         """
         Function decorator to register a function as a monitoring check.
 
@@ -198,6 +205,10 @@ class MonPy:
 
         If there is an active alert and `recheck_interval` is not None, the
         check will run more frequently (at every `recheck_interval`).
+
+        If `exception_as_alert` is `True`, exceptions will be intercepted and
+        sent as an alert. All alert options (`alert_interval`, `alert_after`)
+        still apply.
         """
         def register_wrapper(func):
             self._register(
@@ -205,7 +216,8 @@ class MonPy:
                 check_interval,
                 alert_interval=alert_interval,
                 alert_after=alert_after,
-                recheck_interval=recheck_interval
+                recheck_interval=recheck_interval,
+                exception_as_alert=exception_as_alert
             )
 
         return register_wrapper
