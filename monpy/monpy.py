@@ -213,6 +213,13 @@ class MonPy:
     def run(self):
         """
         Attempt to run all registered monitoring checks.
+
+        This should be called by your check script:
+
+        >>> sys.exit(monpy.run())
+
+        Returns `0` if all checks ran without raising an exception. Otherwise
+        returns `2`.
         """
         exit_code = 0
 
@@ -231,6 +238,7 @@ class MonPy:
         self.logger.info("Starting run...")
 
         for check in self.checks:
+            # --check supplied?
             if self.args.check is not None and self.args.check != check.name:
                 self.logger.debug("Not running check '%s' due to argument '%s'", check.name, self.args.check)
                 continue
@@ -247,7 +255,10 @@ class MonPy:
             result = check.run()
             if result is not None:
                 # Error occured
-                exit_code = 1
+                exit_code = 2
+
+            # Unregister current check to prevent accidental usage outside this
+            # loop
             self.current_check = None
 
         # Clean up some stuff

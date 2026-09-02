@@ -203,7 +203,12 @@ class Check:
         Run this check if `check_interval` has been reached. If
         `recheck_interval` is specified, and there is an active alert, also run
         the check when `recheck_interal` has been reached.
+
+        Returns `None` if the check ran without raising an exception.
+        Otherwise, return the exception that occurred. The exception also gets
+        logged and printed to stderr.
         """
+        result = None
         now = datetime.datetime.now()
         self.last_seen = now
 
@@ -215,14 +220,20 @@ class Check:
             try:
                 self.func()
             except Exception as err:
-                return_value = err
+                result = err
                 self.logger.exception("Exception while running check '%s': %s", self.name, err)
+                # Write exception to stderr, which will trigger a cron error
                 traceback.print_exc()
             finally:
+                # Always save current state, otherwise an exception occuring
+                # will cause the check to be executed every run.
+                # NOTE: Not sure if this is needed as we also do it below
                 self._save()
             self.last_run_end = datetime.datetime.now()
         self.reset_alert_count()
         self._save()
+
+        return result
 
     def alert(self, msg, ident=None, alerter=None):
         """
@@ -251,8 +262,8 @@ class Check:
 
     def reset_alert_count(self):
         """
-        Reset the alert count for all alerts that have not been triggered this
-        run to 0.
+        Reset the alert count for all alerts for this item that have not been
+        triggered this run to 0.
         """
         cur = conn.cursor()
         cur.execute(
@@ -507,8 +518,8 @@ def update_run_state(last_run_start, last_run_end):
 def prune_checks(age):
     """
     Prune unseen checks. This happens when a check is renamed or removed.  If
-    we haven't seen a check for `age` seconds, remove it (and its alerts) from
-    the db.
+    we haven't seen a check for `age` seconds, remove it (and related info)
+    from the db.
     """
     # Get checks that should be pruned
     cutoff_dt = datetime.datetime.now() - datetime.timedelta(seconds=age)
@@ -525,8 +536,8 @@ def prune_checks(age):
 
 def prune_alerts(age):
     """
-    Prune old alerts. This happens when an alert hasn't been seen or sent for
-    `age` seconds.
+    Prune old alerts. This happens when an alert hasn't been seen for `age`
+    seconds.
     """
     cutoff_dt = datetime.datetime.now() - datetime.timedelta(seconds=age)
     cur = conn.cursor()
