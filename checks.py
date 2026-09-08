@@ -228,7 +228,7 @@ if os.path.exists("/var/lib/docker/"):
 #############################################################################
 # Network and website monitoring
 #############################################################################
-if config.get("host_ports_reachable", None) is not None:
+if "host_ports_reachable" in config:
     @monpy.check(minutely * 5, hourly, alert_after=2)
     def host_ports_reachable():
         """
@@ -244,7 +244,7 @@ if config.get("host_ports_reachable", None) is not None:
                     ident=f"{hostname}:{port}"
                 )
 
-if config.get("http_body_checks", None) is not None:
+if "http_body_checks" in config:
     @monpy.check(minutely * 5, hourly, alert_after=2)
     def http_body():
         """
@@ -272,7 +272,7 @@ if config.get("http_body_checks", None) is not None:
                     ident=f"body_{url}"
                 )
 
-if config.get("ssl_cert_checks", None) is not None:
+if "ssl_cert_checks" in config:
     @monpy.check(daily, daily)
     def ssl_expire():
         """
@@ -497,7 +497,7 @@ def listening_ports():
                 ident=port_nr
             )
 
-if config.get("scan_devices_network", None) is not None:
+if "scan_devices_network" in config:
     @monpy.check(hourly, hourly)
     def network_devices():
         """
@@ -594,18 +594,19 @@ def reboot_required():
             f"A reboot is required after updating packages."
         )
 
-@monpy.check(hourly, daily)
-def checksums():
-    """
-    Check file changes using checksums.
-    """
-    for path, checksum in config["checksum_files"]:
-        monpy.log().debug("Checksumming '%s'", path)
-        if collectors.files.checksum(path) != checksum:
-            monpy.alert(
-                f"Checksum for '{path}' didn't match",
-                ident=path
-            )
+if "checksum_files" in config:
+    @monpy.check(hourly, daily)
+    def checksums():
+        """
+        Check file changes using checksums.
+        """
+        for path, checksum in config["checksum_files"]:
+            monpy.log().debug("Checksumming '%s'", path)
+            if collectors.files.checksum(path) != checksum:
+                monpy.alert(
+                    f"Checksum for '{path}' didn't match",
+                    ident=path
+                )
 
 @monpy.check(hourly * 2, daily)
 def new_setuid_binaries():
@@ -640,7 +641,7 @@ def new_setuid_binaries():
             if prev_setuid_bin not in cur_setuid_bins:
                 state.pop(prev_setuid_bin)
 
-if config.get("cve_keywords", None) is not None:
+if "cve_keywords" in config:
     @monpy.check(daily, daily, recheck_interval=minutely * 5)
     def new_cves():
         """
@@ -667,7 +668,7 @@ if config.get("cve_keywords", None) is not None:
 #############################################################################
 # Log monitoring
 #############################################################################
-if config.get("log_nginx_files", None) is not None:
+if "log_nginx_files" in config:
     @monpy.check(minutely, minutely)
     def log_nginx_bruteforce():
         """
@@ -725,7 +726,7 @@ if config.get("log_nginx_files", None) is not None:
 #############################################################################
 # Misc stuff
 #############################################################################
-if config.get("git_repo_status", None) is not None:
+if "git_repo_status" in config:
     @monpy.check(daily, daily, recheck_interval=hourly)
     def git_repo_status():
         """
@@ -750,7 +751,7 @@ if config.get("git_repo_status", None) is not None:
                     ident=path
                 )
 
-if config.get("pipaudit_venv_roots", None) is not None:
+if "pipaudit_venv_roots" in config:
     @monpy.check(daily, daily)
     def python_venv_vulns():
         """
@@ -765,7 +766,7 @@ if config.get("pipaudit_venv_roots", None) is not None:
                         ident=f"{site_pkg_path['path']}_{vuln['name']}_{vuln['version']}"
                     )
 
-if config.get("syncthing_folders", None) is not None:
+if "syncthing_folders" in config:
     @monpy.check(minutely * 5, daily)
     def syncthing_conflicts():
         """
