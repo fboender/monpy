@@ -423,6 +423,8 @@ def bin_ownership():
         problem = False
         for file in collectors.files.files(path):
             if file["uid"] == wrong_owner or file["gid"] == wrong_owner:
+                if file["path"] in config.get("bin_ownership_ignore", []):
+                    continue
                 problem = True
                 break
 
