@@ -592,7 +592,7 @@ def reboot_required():
             f"A reboot is required after updating packages."
         )
 
-@monpy.check(hourly, hourly)
+@monpy.check(hourly, daily)
 def checksums():
     """
     Check file changes using checksums.
