@@ -4,7 +4,6 @@
 * [Getting started](#getting-started)
     * [Installation](#installation)
     * [Usage](#usage)
-* [Status](#status)
 * [Components](#components)
     * [MonPy class](#monpy-class)
     * [The `check()` decorator](#the-`check()`-decorator)
@@ -15,7 +14,7 @@
     * [Run check at specific time](#run-check-at-specific-time)
     * [Maintenance](#maintenance)
     * [Include checks from other file](#include-checks-from-other-file)
-* [License and contributing](#license-and-contributing)
+* [License, status and contributing](#license-status-and-contributing)
 <!-- EOTOC -->
 
 # About
@@ -192,22 +191,6 @@ A cronjob can be used to run the script every minute:
 
 See [`checks.py`](checks.py) for more examples of what's possible and how to
 write checks.
-
-# Status
-
-This project is currently in active development, and is not considered stable.
-
-MonPy is a personal project, designed and maintained for my own needs. It's
-provided AS IS, in the hopes that it will be useful to someone else.
-
-It is unlikely I will implement feature requests or provide substantial
-support for this project, beyond my own needs. There is no desire to grow this
-project beyond its current scope.
-
-I do not accept contributions for this project.
-
-If you find MonPy useful and would like to see it grow into something bigger
-and better, feel free to fork and rename the project.
 
 # Components
 
@@ -430,9 +413,18 @@ Then in your main checks file, you can register it manually:
     from external import test_undecorated
     monpy.register(test_undecorated(monpy), minutely, hourly)
 
-# License and contributing
+# License, status and contributing
 
 MonPy is released under the [MIT License](LICENSE.txt).
 
-I do not take contributions to this project. See the [Status](#status) chapter
-for more information.
+This project is currently in active development, and is not considered stable.
+
+This is a personal project, designed and maintained for my own needs. It's
+provided AS IS, in the hopes that it will be useful to someone else.
+
+Due to time constraints and the large amount of resume padding, AI slop and
+supply chain attacks that has been plaguing Open Source, I do not accept bug
+reports, feature requests or contributions for this project.
+
+If you find this project useful and would like to see it grow into something
+bigger and better, feel free to fork and rename the project.
