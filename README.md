@@ -423,7 +423,7 @@ This is a personal project, designed and maintained for my own needs. It's
 provided AS IS, in the hopes that it will be useful to someone else.
 
 Due to time constraints and the large amount of resume padding, AI slop and
-supply chain attacks that has been plaguing Open Source, I do not accept bug
+supply chain attacks that have been plaguing Open Source, I do not accept bug
 reports, feature requests or contributions for this project.
 
 If you find this project useful and would like to see it grow into something
