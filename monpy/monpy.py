@@ -344,5 +344,7 @@ class MonPy:
 
             with monpy.state("mystate", {}) as state:
                 state["curval"] = 10
+
+        Changes to the state are saved automatically when exiting the context.
         """
         return model.CustomState(self.current_check.name, ident, default)

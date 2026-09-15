@@ -463,10 +463,16 @@ class CustomState:
     Store and retrieve custom states that are preserved in between invocations
     of MonPy.
 
-    `ident` uniquely identifies the custom state. It is not bound to a check,
-    so you can use a single state in multiple checks.
+    This can be used from checks via a MonPy class instance:
 
-    If not state for `ident` is found, `default` is used.
+    >>> monpy.state("my_custom_state", {})
+
+    The state has to be JSON serializable.
+
+    `ident` uniquely identifies the custom state. It is bound to the currently
+    running check.
+
+    If no state for `ident` has been recorded yet, `default` is used.
     """
     def __init__(self, check_name, ident, default):
         self.check_name = check_name
