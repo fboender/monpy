@@ -149,6 +149,7 @@ class MonPy:
         # Connect to state database
         conn = sqlite3.connect(self.state_path)
         conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA journal_mode=WAL")
         model.init_db(conn)
 
     def _register(self, func, check_interval=60, alert_interval=0,
