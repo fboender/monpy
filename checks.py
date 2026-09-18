@@ -47,13 +47,25 @@ re_nginx = \
      r"$"
 
 
-alerter_default = Pushover(config["pushover_tokens"]["default"]["user"],
-                           config["pushover_tokens"]["default"]["app"])
-alerter_cve = Pushover(config["pushover_tokens"]["cve"]["user"],
-                       config["pushover_tokens"]["cve"]["app"])
-reporter = HTML(out_path=config["report_path"], auto_refresh=60)
-monpy = MonPy(alerter=alerter_default, reporter=reporter, lock_wait=30,
-              prune_alert_age=daily*7)
+alerter_default = Pushover(
+    config["pushover_tokens"]["default"]["user"],
+    config["pushover_tokens"]["default"]["app"]
+)
+alerter_cve = Pushover(
+    config["pushover_tokens"]["cve"]["user"],
+    config["pushover_tokens"]["cve"]["app"]
+)
+reporter = HTML(
+    out_path=config["report_path"],
+    auto_refresh=60
+)
+monpy = MonPy(
+    alerter=alerter_default,
+    reporter=reporter,
+    lock_wait=30,
+    disabled_checks=config.get("disabled_checks", None),
+    prune_alert_age=daily*7
+)
 
 ##############################################################################
 ## System resource monitoring
