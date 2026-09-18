@@ -21,9 +21,9 @@ STATE_DIR = "/var/lib/monpy/"
 
 class MonPy:
     def __init__(self, alerter=None, reporter=None, state_dir=STATE_DIR,
-                 lock_wait=None, prune_check_age=86400*2,
-                 prune_alert_age=86400*2, boot_wait=60*2,
-                 maintenance_max=3600, exception_as_alert=False):
+                 lock_wait=None, disabled_checks=None, prune_check_age=86400*2,
+                 prune_alert_age=86400*2, boot_wait=60*2, maintenance_max=3600,
+                 exception_as_alert=False):
         """
         Main MonPy class that orchestrates the running of checks, alerting and
         reporting.
@@ -47,6 +47,10 @@ class MonPy:
         If `lock_wait` (int or float) is specified, MonPy will wait `lock_wait`
         seconds and retry in case the state file is locked.
 
+        If `disabled_checks` (list of strings) is specified, the specified
+        checks will be disabled and will not run, even if `--force` is
+        specified.
+
         `prune_check_age` is the number of seconds after which the state of
         unseen checks are pruned.
 
@@ -66,6 +70,7 @@ class MonPy:
         self.state_dir = state_dir
         self.state_path = os.path.join(self.state_dir, "state.sqlite3")
         self.lock_wait = lock_wait
+        self.disabled_checks = disabled_checks
         self.prune_check_age = prune_check_age
         self.prune_alert_age = prune_alert_age
         self.boot_wait = boot_wait
@@ -251,11 +256,17 @@ class MonPy:
         self.logger.info("Starting run...")
 
         for check in self.checks:
+            # Disabled check?
+            if self.disabled_checks is not None and check.name in self.disabled_checks:
+                self.logger.debug("Not running check '%s' because it is disabled", check.name)
+                continue
+
             # --check supplied?
             if self.args.check is not None and self.args.check != check.name:
                 self.logger.debug("Not running check '%s' due to argument '%s'", check.name, self.args.check)
                 continue
 
+            # Check in maintenance?
             maintenance = self.maintenance.active(check.name)
             if maintenance is not False:
                 self.logger.debug("Not running check '%s' due to maintenance (until %s)", check.name, maintenance["until"] or "forever")
