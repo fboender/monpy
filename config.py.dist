@@ -18,10 +18,15 @@ config = {
         },
     },
 
+    # Enabled checks
+    #"enabled_checks": [
+    #    "docker_outdated"
+    #],
+
     # Disabled checks
-    "disabled_checks": [
-        #"cpu_usage",
-    ],
+    #"disabled_checks": [
+    #    "cpu_usage",
+    #],
 
     # Minimal amount of required free disk space in %
     "disk_space_free_perc": 10,

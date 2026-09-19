@@ -21,8 +21,9 @@ STATE_DIR = "/var/lib/monpy/"
 
 class MonPy:
     def __init__(self, alerter=None, reporter=None, state_dir=STATE_DIR,
-                 lock_wait=None, disabled_checks=None, prune_check_age=86400*2,
-                 prune_alert_age=86400*2, boot_wait=60*2, maintenance_max=3600,
+                 lock_wait=None, enabled_checks=None, disabled_checks=None,
+                 prune_check_age=86400*2, prune_alert_age=86400*2,
+                 boot_wait=60*2, maintenance_max=3600,
                  exception_as_alert=False):
         """
         Main MonPy class that orchestrates the running of checks, alerting and
@@ -47,6 +48,9 @@ class MonPy:
         If `lock_wait` (int or float) is specified, MonPy will wait `lock_wait`
         seconds and retry in case the state file is locked.
 
+        If `enabled_checks` (list of strings) is specified, only those checks
+        will run.
+
         If `disabled_checks` (list of strings) is specified, the specified
         checks will be disabled and will not run, even if `--force` is
         specified.
@@ -70,6 +74,7 @@ class MonPy:
         self.state_dir = state_dir
         self.state_path = os.path.join(self.state_dir, "state.sqlite3")
         self.lock_wait = lock_wait
+        self.enabled_checks = enabled_checks
         self.disabled_checks = disabled_checks
         self.prune_check_age = prune_check_age
         self.prune_alert_age = prune_alert_age
@@ -256,6 +261,11 @@ class MonPy:
         self.logger.info("Starting run...")
 
         for check in self.checks:
+            # Enabled check?
+            if self.enabled_checks is not None and check.name not in self.enabled_checks:
+                self.logger.debug("Not running check '%s' because it is not enabled", check.name)
+                continue
+
             # Disabled check?
             if self.disabled_checks is not None and check.name in self.disabled_checks:
                 self.logger.debug("Not running check '%s' because it is disabled", check.name)

@@ -63,6 +63,7 @@ monpy = MonPy(
     alerter=alerter_default,
     reporter=reporter,
     lock_wait=30,
+    enabled_checks=config.get("enabled_checks", None),
     disabled_checks=config.get("disabled_checks", None),
     prune_alert_age=daily*7
 )
