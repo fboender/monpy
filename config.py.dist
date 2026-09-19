@@ -18,6 +18,11 @@ config = {
         },
     },
 
+    # Disabled checks
+    "disabled_checks": [
+        #"cpu_usage",
+    ],
+
     # Minimal amount of required free disk space in %
     "disk_space_free_perc": 10,
 
@@ -75,6 +80,17 @@ config = {
         "/dev/shm/pulse-shm-*",
     ],
 
+    # Paths to scan for files owned by a certain uid / gid
+    "bin_ownership": [
+        ("/usr/bin/", 1000),
+        ("/usr/sbin/", 1000),
+        ("/usr/local/bin/", 1000),
+        ("/usr/local/sbin/", 1000),
+        ("/usr/local/lib/", 1000),
+    ],
+    "bin_ownership_ignore": [
+    ],
+
     # Minimum load over last 15 minutes higher than 0.9
     "load_max": 0.95,
     "load_max_alert_after": 5,
@@ -89,6 +105,9 @@ config = {
     # Scan network for devices with an unknown MAC address (Alert about new devices
     # on network)
     "scan_devices_network": "192.168.1.0/24",
+    "device_mac_name_map": {
+        "F2:0C:A4:16:D1:48": "router",
+    },
 
     # Check HTTP responses for correct HTTP status and presence of text in the body
     # Format:
@@ -135,6 +154,11 @@ config = {
     ],
     # Ban after 10 invalid / suspicious requests
     "log_nginx_ban_cnt": 10,
+    # Ban keywords. If these occur in a log line anywhere, it results in an
+    # immediate ban
+    "log_nginx_ban_keywords": [
+        "msh-pdfmin",
+    ],
 
     # Check sum files (get'it?)
     # Format:
