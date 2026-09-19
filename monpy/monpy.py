@@ -147,6 +147,12 @@ class MonPy:
         self.logger.setLevel(loglevel)
         self.logger.addHandler(handler)
 
+        # Check if state dir exists
+        if not os.path.exists(self.state_dir):
+            self.logger.debug("State dir '%s' not found. Creating it with mode 700", self.state_dir)
+            os.mkdir(self.state_dir)
+            os.chmod(self.state_dir, 0o700)
+
         # Attempt to get a lock on the state file or wait and try again
         lock_path = os.path.join(self.state_dir, "state.lock")
         self.lock = Lock(lock_path)
