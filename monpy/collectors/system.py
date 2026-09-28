@@ -115,7 +115,7 @@ def cpu_load():
     }
 
 
-def processes():
+def processes(extend_environ=False, extend_status=False, extend_stat=False):
     for fname in os.listdir("/proc"):
         fullpath = os.path.join("/proc", fname)
         if not fname.isdigit() or not os.path.isdir(fullpath):
@@ -123,7 +123,12 @@ def processes():
         pid = fname
 
         try:
-            process = process_info(pid, extend=True)
+            process = process_info(
+                pid,
+                extend_environ=extend_environ,
+                extend_status=extend_status,
+                extend_stat=extend_stat
+            )
             yield process
         except (FileNotFoundError, ProcessLookupError):
             # Something went wrong with getting the process info. It probably
