@@ -238,6 +238,75 @@ if os.path.exists("/var/lib/docker/"):
                     ident=container_name
                 )
 
+@monpy.check(minutely * 5, daily)
+def podman_unhealthy():
+    """
+    Check for unhealthy containers.
+    """
+    for user in config.get("podman_users", []):
+        for container in collectors.podman.containers(user=user):
+            container_name = container['Name'].lstrip('/')
+            monpy.log().debug("Checking container '%s' health (user '%s')", container_name, user)
+            if "Health" not in container["State"]:
+                # No health check
+                continue
+
+            if container["State"]["Status"] == "exited" and container["State"]["ExitCode"] == 0:
+                # Gracefully stopped
+                continue
+
+            health_status = container["State"]["Health"]["Status"]
+            if health_status != "healthy":
+                monpy.alert(
+                   f"Container '{container_name}' is not healthy ({health_status})",
+                    ident=container_name
+                )
+
+@monpy.check(hourly, daily)
+def podman_wildcard_bind():
+    """
+    Check for containers that bind ports on all interfaces (0.0.0.0), and
+    are not configured in ALLOW_DOCKER_WILDCARD_BINDS. This bypasses the
+    firewall
+    """
+    for user in config.get("podman_users", []):
+        for container in collectors.podman.containers(running=True, user=user):
+            container_name = container["Name"].lstrip("/")
+            monpy.log().debug("Checking container '%s' for ports bound on 0.0.0.0 (user '%s')", container_name, user)
+            ports = container["NetworkSettings"]["Ports"]
+            if ports is None:
+                continue
+
+            for port, host_ports in ports.items():
+                if port in config["allow_docker_wildcard_binds"]:
+                    continue
+
+                if host_ports is None:
+                    continue
+
+                for host_port in host_ports:
+                    if host_port["HostIp"] == "0.0.0.0":
+                        monpy.alert(
+                            f"Container '{container_name}' exposes port {port} on all interfaces (0.0.0.0)",
+                            ident=f"{container_name}-{port}",
+                        )
+
+@monpy.check(daily, daily)
+def podman_outdated():
+    """
+    Check for container updates
+    """
+    outdated_containers = []
+    for user in config.get("podman_users", []):
+        for container in collectors.podman.containers(running=True, user=user):
+            container_name = container["Name"].lstrip("/")
+            monpy.log().debug("Checking container '%s' for updates (user '%s')", container_name, user)
+            if collectors.podman.container_outdated(container):
+                monpy.alert(
+                    f"Container '{container_name}' has an update available",
+                    ident=container_name
+                )
+
 #############################################################################
 # Network and website monitoring
 #############################################################################

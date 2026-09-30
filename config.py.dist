@@ -62,6 +62,11 @@ config = {
     "allow_container_docker_socket": [
     ],
 
+    # Users that have podman running
+    "podman_users": [
+        "podman",
+    ],
+
     # World-writable temp paths to scan for weird things. Malware often writes to
     # temp paths
     "temp_paths": [
@@ -83,6 +88,9 @@ config = {
         "/tmp/pyinfra-sudo-askpass-*",
         # RetroArch does something, idk
         "/dev/shm/pulse-shm-*",
+        # Podman
+        "/tmp/containers-user-1004/*",
+        "/tmp/podman-run-1004/*",
     ],
 
     # Paths to scan for files owned by a certain uid / gid
