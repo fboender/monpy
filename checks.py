@@ -16,6 +16,7 @@
 import os
 import sys
 import stat
+import time
 import datetime
 import subprocess
 import fnmatch
@@ -604,12 +605,16 @@ if "scan_devices_network" in config:
                     device["hostname"],
                     device["vendor"]
                 )
+
                 # Alert only once by keeping the mac in monpy status
                 if device["mac"] not in state:
                     monpy.alert(
                         f"New device found on network '{config['scan_devices_network']}': {device['ip']} (hostname={device['hostname']}, vendor={device['vendor']}, mac={device['mac']})",
                         device["mac"]
                     )
+
+                # Set last seen so we can delete devices after X time
+                device["last_seen"] = int(time.time())
 
                 # Update state
                 state[device["mac"]] = device
@@ -620,6 +625,17 @@ if "scan_devices_network" in config:
                     device["name"] = config["device_mac_name_map"][device["mac"]]
                 else:
                     device["name"] = ""
+
+            # Delete devices not seen for a while
+            delete_macs = []
+            for device_mac, device_state in state.items():
+                last_seen = device_state.get("last_seen", 0)
+                last_seen_age = time.time() - last_seen
+                if last_seen_age > config.get("device_forget", 60 * 60 * 24 * 7):
+                    delete_macs.append(device_mac)
+
+            for delete_mac in delete_macs:
+                state.pop(delete_mac)
 
             # Write CSV file of devices
             import csv

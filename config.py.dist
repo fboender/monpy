@@ -118,6 +118,7 @@ config = {
     # Scan network for devices with an unknown MAC address (Alert about new devices
     # on network)
     "scan_devices_network": "192.168.1.0/24",
+    "device_forget": 60 * 60 * 24 * 7,
     "device_mac_name_map": {
         "F2:0C:A4:16:D1:48": "router",
     },
