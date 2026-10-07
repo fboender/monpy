@@ -588,13 +588,14 @@ if "file_integrity_dirs" in config:
             update = True
 
         for dir in config["file_integrity_dirs"]:
+            monpy.log().debug("Performing file integrity scan on %s", dir)
             new, changed, gone = collectors.files.integrity(dir, monpy, update=update)
             for path in new:
-                mon.log().info("New file in %s: %s", dir, path)
+                monpy.log().info("New file in %s: %s", dir, path)
             for path in changed:
-                mon.log().info("Changed file in %s: %s", dir, path)
+                monpy.log().info("Changed file in %s: %s", dir, path)
             for path in gone:
-                mon.log().info("Removed file in %s: %s", dir, path)
+                monpy.log().info("Removed file in %s: %s", dir, path)
 
 if "scan_devices_network" in config:
     @monpy.check(hourly, hourly)
