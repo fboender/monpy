@@ -304,3 +304,65 @@ def checksum(path):
         while chunk := f.read(8192):
             h.update(chunk)
     return h.hexdigest()
+
+
+def integrity(path, monpy, update=False):
+    """
+    Monitor file integrity of files under `path` using sha256 checksums.
+    `monpy` is a reference to the MonPy instance, so we can save information to
+    its state db.
+
+    If `update` is True, the checksums are updated without returning any
+    changes. This is useful for when system upgrades have been done and you
+    know many things will have changed.
+
+    Returns a tuple with three tuples for new, changed and removed files:
+
+        new, changed, gone = integrity("/bin", monpy)
+
+    The first scan of `path` never returns any new files.
+    """
+    bucket = monpy.bucket("file_integrity")
+    first_time = bucket.get(path, True)
+
+    fim_new = set()
+    fim_changed = set()
+    fim_gone = set()
+
+    for file in files(path):
+        if file["type"] != "file":
+            # Ignore directories, symlinks, etc
+            continue
+
+        this_checksum = checksum(file["path"])
+        prev_checksum = bucket.get(file["path"], "")
+        if prev_checksum == "":
+            # New file
+            if first_time is not True and update is not True:
+                fim_new.add(file["path"])
+            bucket.set(file["path"], this_checksum, commit=False)
+        elif prev_checksum != this_checksum:
+            # Changed file
+            if update is not True:
+                fim_changed.add(file["path"])
+            bucket.set(file["path"], this_checksum, commit=False)
+        else:
+            # Unchanged file. Update its "last_seen" field.
+            bucket.touch(file["path"])
+
+    # Add the dir to the bucket, so we can check if we've already processed
+    # that dir. If not, we shouldn't alert because the dir wasn't being
+    # monitored for file integrity yet.
+    bucket.set(path, "")
+
+    # Construct set of files we didn't seen this run
+    if update is not True:
+        for key in bucket.unseen():
+            fim_gone.add(key)
+
+    # Remove stale keys from the bucket (since it was instantiated) and commit
+    # all changes.
+    bucket.vacuum()
+    bucket.commit()
+
+    return (fim_new, fim_changed, fim_gone)
