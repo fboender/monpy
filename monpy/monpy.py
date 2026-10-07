@@ -375,3 +375,9 @@ class MonPy:
         Changes to the state are saved automatically when exiting the context.
         """
         return model.CustomState(self.current_check.name, ident, default)
+
+    def bucket(self, ident):
+        """
+        Buckets of key/value pairs that are persisted in the MonPy state database.
+        """
+        return model.Bucket(self.current_check.name, ident)

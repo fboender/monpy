@@ -49,6 +49,17 @@ SCHEMAS = [
         );
     """,
     """
+        CREATE TABLE IF NOT EXISTS "buckets" (
+            check_name        TEXT,
+            ident             TEXT,
+            last_seen         DATETIME,
+            key               TEXT NOT NULL,
+            value             TEXT,
+
+            PRIMARY KEY (check_name, ident, key)
+        );
+    """,
+    """
         -- ident can be NULL, in which case sqlite3 doesn't enforce uniqueness. It does
         -- for empty strings.
         CREATE UNIQUE INDEX IF NOT EXISTS idx_alert_ident
@@ -516,6 +527,135 @@ class CustomState:
             )
         )
 
+
+class Bucket:
+    """
+    Key/value mapping
+    """
+    def __init__(self, check_name, ident):
+        self.check_name = check_name
+        self.ident = ident
+        self.dt = datetime.datetime.now()
+        self.cursor = conn.cursor()
+
+    def get(self, key, default_val=None):
+        """
+        Get value for `key`. If `key` is not found, return `default_val`
+        """
+        self.cursor.execute(
+            """
+            SELECT
+                value
+            FROM buckets
+            WHERE
+                check_name = ? AND
+                ident = ? AND
+                key = ?
+            """,
+            (
+                self.check_name,
+                self.ident,
+                key
+            )
+        )
+        row = self.cursor.fetchone()
+        if row is None:
+            return default_val
+        else:
+            return row[0]
+
+    def set(self, key, value, commit=True):
+        """
+        Set value of `key` to `value`
+        """
+        now = datetime.datetime.now()
+        self.cursor.execute(
+            """
+            INSERT INTO buckets VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(check_name, ident, key)
+            DO UPDATE SET value = excluded.value, last_seen = excluded.last_seen
+            """,
+            (self.check_name, self.ident, now, key, value)
+        )
+        if commit is True:
+            conn.commit()
+
+    def touch(self, key, commit=False):
+        self.cursor.execute(
+            """
+            UPDATE
+                buckets
+            SET
+                last_seen = ?
+            WHERE
+                check_name = ? AND
+                ident = ? AND
+                key = ?
+            """,
+            (
+                datetime.datetime.now(),
+                self.check_name,
+                self.ident,
+                key
+            )
+        )
+        if commit is True:
+            conn.commit()
+
+    def unseen(self, since=None):
+        """
+        Return bucket entries whos `last_seen` is older than `since`
+        (datetime.datetime). If `since` is not specified, the datetime of when
+        the Bucket object was instantieted is used.
+        """
+        if since is None:
+            since = self.dt
+
+        self.cursor.execute(
+            """
+            SELECT
+                key
+            FROM buckets
+            WHERE
+                check_name = ? AND
+                ident = ? AND
+                last_seen < ?
+            """,
+            (
+                self.check_name,
+                self.ident,
+                since
+            )
+        )
+        rows = self.cursor.fetchall()
+        return [row[0] for row in rows]
+
+    def vacuum(self, since=None):
+        """
+        Remove stale keys not seen since `since` (datetime.datetime). If
+        `since` is not specified, the datetime of when the Bucket object was
+        instantieted is used.
+        """
+        if since is None:
+            since = self.dt
+        self.cursor.execute(
+            """
+            DELETE FROM buckets
+            WHERE
+                check_name = ? AND
+                ident = ? AND
+                last_seen <= ?
+            """,
+            (
+                self.check_name,
+                self.ident,
+                since
+            )
+        )
+        conn.commit()
+
+    def commit(self):
+        conn.commit()
 
 def update_run_state(last_run_start, last_run_end):
     """
