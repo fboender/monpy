@@ -581,7 +581,7 @@ def listening_ports():
             )
 
 if "file_integrity_dirs" in config:
-    @monpy.check(hourly, hourly)
+    @monpy.check(hourly * 6, hourly)
     def file_integrity():
         update = False
         if "FIM_UPDATE" in os.environ:

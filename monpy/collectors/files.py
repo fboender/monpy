@@ -322,7 +322,7 @@ def integrity(path, monpy, update=False):
 
     The first scan of `path` never returns any new files.
     """
-    bucket = monpy.bucket("file_integrity")
+    bucket = monpy.bucket(path)
     first_time = bucket.get(path, True)
 
     fim_new = set()
