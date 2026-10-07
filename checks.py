@@ -580,6 +580,22 @@ def listening_ports():
                 ident=port_nr
             )
 
+if "file_integrity_dirs" in config:
+    @monpy.check(hourly, hourly)
+    def file_integrity():
+        update = False
+        if "FIM_UPDATE" in os.environ:
+            update = True
+
+        for dir in config["file_integrity_dirs"]:
+            new, changed, gone = collectors.files.integrity(dir, monpy, update=update)
+            for path in new:
+                mon.log().info("New file in %s: %s", dir, path)
+            for path in changed:
+                mon.log().info("Changed file in %s: %s", dir, path)
+            for path in gone:
+                mon.log().info("Removed file in %s: %s", dir, path)
+
 if "scan_devices_network" in config:
     @monpy.check(hourly, hourly)
     def network_devices():
