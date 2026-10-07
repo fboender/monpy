@@ -587,15 +587,17 @@ if "file_integrity_dirs" in config:
         if "FIM_UPDATE" in os.environ:
             update = True
 
-        for dir in config["file_integrity_dirs"]:
-            monpy.log().debug("Performing file integrity scan on %s", dir)
-            new, changed, gone = collectors.files.integrity(dir, monpy, update=update)
-            for path in new:
-                monpy.log().info("New file in %s: %s", dir, path)
-            for path in changed:
-                monpy.log().info("Changed file in %s: %s", dir, path)
-            for path in gone:
-                monpy.log().info("Removed file in %s: %s", dir, path)
+        new, changed, gone = collectors.files.integrity(
+            config["file_integrity_dirs"],
+            monpy,
+            update=update
+        )
+        for path in new:
+            monpy.log().info("New file in %s: %s", dir, path)
+        for path in changed:
+            monpy.log().info("Changed file in %s: %s", dir, path)
+        for path in gone:
+            monpy.log().info("Removed file in %s: %s", dir, path)
 
 if "scan_devices_network" in config:
     @monpy.check(hourly, hourly)

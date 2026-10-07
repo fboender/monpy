@@ -306,9 +306,9 @@ def checksum(path):
     return h.hexdigest()
 
 
-def integrity(path, monpy, update=False):
+def integrity(dirs, monpy, update=False):
     """
-    Monitor file integrity of files under `path` using sha256 checksums.
+    Monitor file integrity of files under `dirs` using sha256 checksums.
     `monpy` is a reference to the MonPy instance, so we can save information to
     its state db.
 
@@ -320,40 +320,43 @@ def integrity(path, monpy, update=False):
 
         new, changed, gone = integrity("/bin", monpy)
 
-    The first scan of `path` never returns any new files.
+    The first scan of `drs` never returns any new files.
     """
-    bucket = monpy.bucket(path)
-    first_time = bucket.get(path, True)
+    bucket = monpy.bucket("fit")
 
     fim_new = set()
     fim_changed = set()
     fim_gone = set()
 
-    for file in files(path):
-        if file["type"] != "file":
-            # Ignore directories, symlinks, etc
-            continue
+    for dir in dirs:
+        monpy.log().debug("Performing file integrity scan on %s", dir)
 
-        this_checksum = checksum(file["path"])
-        prev_checksum = bucket.get(file["path"], "")
-        if prev_checksum == "":
-            # New file
-            if first_time is not True and update is not True:
-                fim_new.add(file["path"])
-            bucket.set(file["path"], this_checksum, commit=False)
-        elif prev_checksum != this_checksum:
-            # Changed file
-            if update is not True:
-                fim_changed.add(file["path"])
-            bucket.set(file["path"], this_checksum, commit=False)
-        else:
-            # Unchanged file. Update its "last_seen" field.
-            bucket.touch(file["path"])
+        first_time = bucket.get(dir, True)
+        for file in files(dir):
+            if file["type"] != "file":
+                # Ignore directories, symlinks, etc
+                continue
 
-    # Add the dir to the bucket, so we can check if we've already processed
-    # that dir. If not, we shouldn't alert because the dir wasn't being
-    # monitored for file integrity yet.
-    bucket.set(path, "")
+            this_checksum = checksum(file["path"])
+            prev_checksum = bucket.get(file["path"], "")
+            if prev_checksum == "":
+                # New file
+                if first_time is not True and update is not True:
+                    fim_new.add(file["path"])
+                bucket.set(file["path"], this_checksum, commit=False)
+            elif prev_checksum != this_checksum:
+                # Changed file
+                if update is not True:
+                    fim_changed.add(file["path"])
+                bucket.set(file["path"], this_checksum, commit=False)
+            else:
+                # Unchanged file. Update its "last_seen" field.
+                bucket.touch(file["path"])
+
+        # Add the dir to the bucket, so we can check if we've already processed
+        # that dir. If not, we shouldn't alert because the dir wasn't being
+        # monitored for file integrity yet.
+        bucket.set(dir, "")
 
     # Construct set of files we didn't seen this run
     if update is not True:
