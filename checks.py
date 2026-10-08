@@ -597,8 +597,8 @@ if "file_integrity_dirs" in config:
             monpy.log().info("Removed file: %s", path)
 
         # Only alert if IM_UPDATE isn't set in the environment
-        if "FIM_UPDATE" not in os.environ:
-            total_changes = len(new) + len(changed) + len(removed)
+        total_changes = len(new) + len(changed) + len(removed)
+        if total_changes > 0 and "FIM_UPDATE" not in os.environ:
             if total_changes < 10:
                 msg = ""
                 if new:
