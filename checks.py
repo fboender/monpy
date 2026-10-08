@@ -583,21 +583,33 @@ def listening_ports():
 if "file_integrity_dirs" in config:
     @monpy.check(hourly * 6, hourly)
     def file_integrity():
-        update = False
-        if "FIM_UPDATE" in os.environ:
-            update = True
-
-        new, changed, gone = collectors.files.integrity(
+        new, changed, removed = collectors.files.integrity(
             config["file_integrity_dirs"],
             monpy,
-            update=update
         )
+
+        # Log info
         for path in new:
-            monpy.log().info("New file in %s: %s", dir, path)
+            monpy.log().info("New file: %s", path)
         for path in changed:
-            monpy.log().info("Changed file in %s: %s", dir, path)
-        for path in gone:
-            monpy.log().info("Removed file in %s: %s", dir, path)
+            monpy.log().info("Changed: %s", path)
+        for path in removed:
+            monpy.log().info("Removed file: %s", path)
+
+        # Only alert if IM_UPDATE isn't set in the environment
+        if "FIM_UPDATE" not in os.environ:
+            total_changes = len(new) + len(changed) + len(removed)
+            if total_changes < 10:
+                msg = ""
+                if new:
+                    msg += f"New files: {", ".join(new)}."
+                if changed:
+                    msg += f"Changed files: {", ".join(changed)}."
+                if removed:
+                    msg += f"Removed files: {", ".join(removed)}."
+            else:
+                msg = f"{len(new)} new files, {len(changed)} changed files, {len(removed)} removed files. See log for more info."
+            monpy.alert(msg)
 
 if "scan_devices_network" in config:
     @monpy.check(hourly, hourly)
