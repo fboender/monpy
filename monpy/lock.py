@@ -90,4 +90,3 @@ class Lock:
                 raise
         else:
             return True
-

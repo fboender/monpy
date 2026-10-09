@@ -5,12 +5,12 @@ import datetime
 import time
 
 
-
 def kb_to_bytes(s):
     return int(s[:-3]) * 1024
 
 
-def process_info(pid, extend_environ=False, extend_status=False, extend_stat=False):
+def process_info(pid, extend_environ=False, extend_status=False,
+                 extend_stat=False):
     process = {
         "pid": int(pid),
         "cmdline": None,

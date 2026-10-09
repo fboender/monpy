@@ -321,6 +321,7 @@ class Check:
                f"alert_interval={self.alert_interval}" \
                ">"
 
+
 class Alert:
     def __init__(self, alerter, check_name, ident, msg, alert_interval,
                  alert_after, no_alert, no_suppress):
@@ -656,6 +657,7 @@ class Bucket:
 
     def commit(self):
         conn.commit()
+
 
 def update_run_state(last_run_start, last_run_end):
     """

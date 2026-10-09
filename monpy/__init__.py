@@ -11,4 +11,4 @@ __METADATA__ = {
     "homepage": "https://github.com/fboender/monpy",
 }
 
-from .monpy import MonPy
+from .monpy import MonPy  # noqa: F401

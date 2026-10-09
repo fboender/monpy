@@ -73,5 +73,3 @@ class Maintenance:
                         active_maintenance = maintenance
 
         return active_maintenance
-
-

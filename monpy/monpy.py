@@ -3,8 +3,6 @@
 import argparse
 import logging
 import os
-import json
-import traceback
 import sys
 import datetime
 import sqlite3
@@ -16,7 +14,6 @@ from .collectors.system import uptime
 
 
 STATE_DIR = "/var/lib/monpy/"
-
 
 
 class MonPy:
