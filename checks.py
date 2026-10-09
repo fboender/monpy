@@ -25,7 +25,6 @@ from monpy import MonPy
 from monpy import collectors
 from monpy.alerters import Pushover
 from monpy.reporters import HTML
-from monpy.tools import Bucket
 
 from config import config
 
