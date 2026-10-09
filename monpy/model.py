@@ -247,7 +247,7 @@ class Check:
                 # NOTE: Not sure if this is needed as we also do it below
                 self._save()
             self.last_run_end = datetime.datetime.now()
-        self.reset_alert_count()
+            self.reset_alert_count()
         self._save()
 
         return result
@@ -282,6 +282,7 @@ class Check:
         Reset the alert count for all alerts for this item that have not been
         triggered this run to 0.
         """
+        self.logger.debug("Resetting alert count for %s (last_seen: %s)", self.name, self.last_seen)
         cur = conn.cursor()
         cur.execute(
             """
