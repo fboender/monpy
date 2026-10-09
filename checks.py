@@ -815,8 +815,7 @@ if "log_nginx_files" in config:
                 }
             }
         """
-        sqlite_path = os.path.join(os.path.dirname(monpy.state_path), "buckets.sqlite3")
-        bucket = Bucket(sqlite_path, "log_nginx_bruteforce")
+        bucket = monpy.bucket("bruteforce")
         banned_this_check = []
         for log_path in config["log_nginx_files"]:
             for request in collectors.files.log_watch(log_path, monpy, re_nginx):
@@ -833,7 +832,7 @@ if "log_nginx_files" in config:
                     continue
 
                 # Increase counter for this ip
-                ip_cnt = bucket.get(request["ip"], 0)
+                ip_cnt = int(bucket.get(request["ip"], 0))
                 bucket.set(request["ip"], ip_cnt + 1, commit=False)
 
                 if ip_cnt >= config["log_nginx_ban_cnt"]:
