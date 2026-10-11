@@ -17,9 +17,10 @@ import os
 import sys
 import stat
 import time
+import socket
+import fnmatch
 import datetime
 import subprocess
-import fnmatch
 
 from monpy import MonPy
 from monpy import collectors
@@ -385,6 +386,58 @@ def external_ip_changed():
             )
         state["ip"] = cur_external_ip
 
+@monpy.check(minutely, hourly)
+def net_out_conn():
+    """
+    Monitor outgoing network connections
+    """
+    for conn in collectors.net.netstat():
+        if conn["state"] in ("LISTEN", "TIME_WAIT", "LAST_ACK"):
+            continue
+        if conn["remote"][0] == "127.0.0.1":
+            continue
+        if conn["remote"][0].startswith("192.168."):
+            continue
+        if conn["family"] != "ipv4":
+            continue
+
+        proc = conn["processes"][0]["cmdline"].split()[0]
+
+        # Ignore certain processes always
+        if any(
+            [
+                True
+                for ignore_proc in config["net_out_conn"]["ignore_procs"]
+                if ignore_proc in proc
+            ]
+        ):
+            continue
+
+        # Ignore processes connecting to specific ports
+        allowed_ports = config["net_out_conn"]["allowed_ports"].get(proc)
+        if allowed_ports is not None and conn["remote"][1] in allowed_ports:
+            continue
+
+        # Resolve remote hostname
+        try:
+            hostname, aliases, addresses = socket.gethostbyaddr(conn["remote"][0])
+        except socket.herror:
+            hostname = conn["remote"][0]
+
+        bucket = monpy.bucket("conn")
+        remote = f"{conn['remote'][0]}:{conn['remote'][1]}"
+        seen = bucket.get(remote, False)
+        if seen:
+            continue
+
+        bucket.set(remote, True)
+        monpy.log().warning(
+            "New outgoing connection to %s (%s) for proc: %s",
+            hostname,
+            remote,
+            proc
+        )
+#        print(conn["remote"], hostname, proc)
 
 #############################################################################
 # Server problem and error reporting monitoring

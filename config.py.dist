@@ -115,6 +115,17 @@ config = {
         ("192.168.1.1", 80),
     ],
 
+    # Allowed outgoing network connections
+    "net_out_conn": {
+        "ignore_procs": [
+            #"/usr/lib/firefox/firefox"
+        ],
+        "allowed_ports": {
+            "/usr/lib/firefox/firefox": [443,],
+            "irssi": [6667, 6697],
+        }
+    },
+
     # Scan network for devices with an unknown MAC address (Alert about new devices
     # on network)
     "scan_devices_network": "192.168.1.0/24",
