@@ -401,8 +401,12 @@ def net_out_conn():
         if conn["family"] != "ipv4":
             continue
 
-        proc = conn["processes"][0]["cmdline"].split()[0]
-        pid = conn["processes"][0]["pid"]
+        try:
+            proc = conn["processes"][0]["cmdline"].split()[0]
+            pid = conn["processes"][0]["pid"]
+        except IndexError:
+            proc = "Unknown"
+            pid = -1
 
         # Ignore certain processes always
         if any(
