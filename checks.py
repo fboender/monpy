@@ -402,6 +402,7 @@ def net_out_conn():
             continue
 
         proc = conn["processes"][0]["cmdline"].split()[0]
+        pid = conn["processes"][0]["pid"]
 
         # Ignore certain processes always
         if any(
@@ -432,10 +433,11 @@ def net_out_conn():
 
         bucket.set(remote, True)
         monpy.log().warning(
-            "New outgoing connection to %s (%s) for proc: %s",
+            "New outgoing connection to %s (%s) for proc: %s (pid=%s)",
             hostname,
             remote,
-            proc
+            proc,
+            pid
         )
 #        print(conn["remote"], hostname, proc)
 
