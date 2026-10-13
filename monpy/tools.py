@@ -85,8 +85,6 @@ def inode_pid_map():
 
     for pid in filter(str.isdigit, os.listdir("/proc")):
         fd_dir = Path("/proc") / pid / "fd"
-        if not fd_dir.exists():
-            continue
         try:
             for fd in fd_dir.iterdir():
                 try:
@@ -96,7 +94,7 @@ def inode_pid_map():
                         inode_map.setdefault(inode, []).append(int(pid))
                 except OSError:
                     pass
-        except PermissionError:
+        except (PermissionError, FileNotFoundError):
             continue
     return inode_map
 
