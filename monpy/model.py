@@ -281,8 +281,11 @@ class Check:
         """
         Reset the alert count for all alerts for this item that have not been
         triggered this run to 0.
+
+        The alert count is used when specifying `alert_after` for a check.
+        Effectively, this means a check has to keep triggering an alert for X
+        times before an actual alert is sent.
         """
-        self.logger.debug("Resetting alert count for %s (last_seen: %s)", self.name, self.last_seen)
         cur = conn.cursor()
         cur.execute(
             """
@@ -297,6 +300,8 @@ class Check:
                 self.last_seen
             )
         )
+        if cur.rowcount > 0:
+            self.logger.debug("Reset alert count for %s (last_seen: %s)", self.name, self.last_seen)
 
     def active_alerts(self):
         cur = conn.cursor()
