@@ -22,6 +22,7 @@ SCHEMAS = [
             check_interval    INTEGER,
             recheck_interval  INTEGER,
             alert_interval    INTEGER,
+            alert_after       INTEGER,
 
             PRIMARY KEY (name)
         );
@@ -145,7 +146,7 @@ class Check:
         cur = conn.cursor()
         qry = """
             INSERT INTO checks
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(name) DO UPDATE SET
                 desc = excluded.desc,
                 last_seen = excluded.last_seen,
@@ -153,7 +154,8 @@ class Check:
                 last_run_end = excluded.last_run_end,
                 check_interval = excluded.check_interval,
                 recheck_interval = excluded.recheck_interval,
-                alert_interval = excluded.alert_interval
+                alert_interval = excluded.alert_interval,
+                alert_after = excluded.alert_after
             ;
         """
         cur.execute(
@@ -166,7 +168,8 @@ class Check:
                 dt_to_str(self.last_run_end),
                 self.check_interval,
                 self.recheck_interval,
-                self.alert_interval
+                self.alert_interval,
+                self.alert_after
             )
         )
 
