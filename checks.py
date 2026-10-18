@@ -127,27 +127,28 @@ def temperatures():
                 ident=t_info['name']
             )
 
-@monpy.check(minutely, hourly)
-def proc_with_high_mem():
-    """
-    Check for processes using a lot of memory
-    """
-    for process in collectors.system.processes():
-        if process.get("vmrss", 0) > config["proc_high_mem_mb"] * (1024 ** 2):
-            ignore = False
-            for process_name in config["proc_high_mem_ignore"]:
-                if process_name in process["exe"]:
-                    ignore = True
-                    break
+if "proc_high_mem_mb" in config:
+    @monpy.check(minutely, hourly)
+    def proc_with_high_mem():
+        """
+        Check for processes using a lot of memory
+        """
+        for process in collectors.system.processes():
+            if process.get("vmrss", 0) > config["proc_high_mem_mb"] * (1024 ** 2):
+                ignore = False
+                for process_name in config["proc_high_mem_ignore"]:
+                    if process_name in process["exe"]:
+                        ignore = True
+                        break
 
-            if ignore:
-                continue
+                if ignore:
+                    continue
 
-            mem_usage_gb = process["vmrss"] / (1024 ** 2)
-            monpy.alert(
-                f"Process '{process['exe']}' (pid: {process['pid']}) uses more than {config['proc_high_mem_mb']} MB of memory ({mem_usage_gb:.2f} MM)",
-                ident=process["pid"]
-            )
+                mem_usage_gb = process["vmrss"] / (1024 ** 2)
+                monpy.alert(
+                    f"Process '{process['exe']}' (pid: {process['pid']}) uses more than {config['proc_high_mem_mb']} MB of memory ({mem_usage_gb:.2f} MM)",
+                    ident=process["pid"]
+                )
 
 #############################################################################
 # Docker
@@ -386,64 +387,64 @@ def external_ip_changed():
             )
         state["ip"] = cur_external_ip
 
-@monpy.check(minutely, hourly)
-def net_out_conn():
-    """
-    Monitor outgoing network connections
-    """
-    for conn in collectors.net.netstat():
-        if conn["state"] in ("LISTEN", "TIME_WAIT", "LAST_ACK"):
-            continue
-        if conn["remote"][0] == "127.0.0.1":
-            continue
-        if conn["remote"][0].startswith("192.168."):
-            continue
-        if conn["family"] != "ipv4":
-            continue
+if "net_out_conn" in config:
+    @monpy.check(minutely, hourly)
+    def net_out_conn():
+        """
+        Monitor outgoing network connections
+        """
+        for conn in collectors.net.netstat():
+            if conn["state"] in ("LISTEN", "TIME_WAIT", "LAST_ACK"):
+                continue
+            if conn["remote"][0] == "127.0.0.1":
+                continue
+            if conn["remote"][0].startswith("192.168."):
+                continue
+            if conn["family"] != "ipv4":
+                continue
 
-        try:
-            proc = conn["processes"][0]["cmdline"].split()[0]
-            pid = conn["processes"][0]["pid"]
-        except IndexError:
-            proc = "Unknown"
-            pid = -1
+            try:
+                proc = conn["processes"][0]["cmdline"].split()[0]
+                pid = conn["processes"][0]["pid"]
+            except IndexError:
+                proc = "Unknown"
+                pid = -1
 
-        # Ignore certain processes always
-        if any(
-            [
-                True
-                for ignore_proc in config["net_out_conn"]["ignore_procs"]
-                if ignore_proc in proc
-            ]
-        ):
-            continue
+            # Ignore certain processes always
+            if any(
+                [
+                    True
+                    for ignore_proc in config["net_out_conn"]["ignore_procs"]
+                    if ignore_proc in proc
+                ]
+            ):
+                continue
 
-        # Ignore processes connecting to specific ports
-        allowed_ports = config["net_out_conn"]["allowed_ports"].get(proc)
-        if allowed_ports is not None and conn["remote"][1] in allowed_ports:
-            continue
+            # Ignore processes connecting to specific ports
+            allowed_ports = config["net_out_conn"]["allowed_ports"].get(proc)
+            if allowed_ports is not None and conn["remote"][1] in allowed_ports:
+                continue
 
-        # Resolve remote hostname
-        try:
-            hostname, aliases, addresses = socket.gethostbyaddr(conn["remote"][0])
-        except socket.herror:
-            hostname = conn["remote"][0]
+            # Resolve remote hostname
+            try:
+                hostname, aliases, addresses = socket.gethostbyaddr(conn["remote"][0])
+            except socket.herror:
+                hostname = conn["remote"][0]
 
-        bucket = monpy.bucket("conn")
-        remote = f"{conn['remote'][0]}:{conn['remote'][1]}"
-        seen = bucket.get(remote, False)
-        if seen:
-            continue
+            bucket = monpy.bucket("conn")
+            remote = f"{conn['remote'][0]}:{conn['remote'][1]}"
+            seen = bucket.get(remote, False)
+            if seen:
+                continue
 
-        bucket.set(remote, True)
-        monpy.log().warning(
-            "New outgoing connection to %s (%s) for proc: %s (pid=%s)",
-            hostname,
-            remote,
-            proc,
-            pid
-        )
-#        print(conn["remote"], hostname, proc)
+            bucket.set(remote, True)
+            monpy.log().warning(
+                "New outgoing connection to %s (%s) for proc: %s (pid=%s)",
+                hostname,
+                remote,
+                proc,
+                pid
+            )
 
 #############################################################################
 # Server problem and error reporting monitoring
@@ -505,53 +506,54 @@ def high_uptime():
             f"Uptime is higher than {config['uptime_days']} days"
         )
 
-@monpy.check(hourly, daily, recheck_interval=minutely * 5)
-def executables_in_tmp():
-    """
-    Check for executables in temp directories. These are indicators of system
-    compromise (malware, coin miners)
-    """
-    def error(path, err):
-        # AppImage mounts can't be read even by root. Same for stuff in
-        # /run/user (only readable for that user)
-        if (
-            isinstance(err, PermissionError) and (
-                ".mount_" in path or
-                "/run/user" in path
-            )
-        ):
-            return
-
-        # Sometimes files disappear while we're running
-        if isinstance(err, FileNotFoundError):
-            return
-
-        raise err
-
-    for temp_path in config["temp_paths"]:
-        if not os.path.exists(temp_path):
-            continue
-
-        for file in collectors.files.files(temp_path, ftype='file', one_fs=False, on_error=error):
-            is_exec = bool(file["mode"] & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH))
-            if not is_exec:
-                continue
-
-            # Match current path to all configured ignore patterns. Ignore if a
-            # match is found.
-            if any(
-                [
-                    fnmatch.fnmatch(file["path"], ignore_pattern)
-                    for ignore_pattern
-                    in config.get("temp_paths_ignore", [])
-                ]
+if "temp_paths" in config:
+    @monpy.check(hourly, daily, recheck_interval=minutely * 5)
+    def executables_in_tmp():
+        """
+        Check for executables in temp directories. These are indicators of system
+        compromise (malware, coin miners)
+        """
+        def error(path, err):
+            # AppImage mounts can't be read even by root. Same for stuff in
+            # /run/user (only readable for that user)
+            if (
+                isinstance(err, PermissionError) and (
+                    ".mount_" in path or
+                    "/run/user" in path
+                )
             ):
+                return
+
+            # Sometimes files disappear while we're running
+            if isinstance(err, FileNotFoundError):
+                return
+
+            raise err
+
+        for temp_path in config["temp_paths"]:
+            if not os.path.exists(temp_path):
                 continue
 
-            monpy.alert(
-                f"Executable found in temp dir: {file['path']}",
-                ident=file["path"]
-            )
+            for file in collectors.files.files(temp_path, ftype='file', one_fs=False, on_error=error):
+                is_exec = bool(file["mode"] & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH))
+                if not is_exec:
+                    continue
+
+                # Match current path to all configured ignore patterns. Ignore if a
+                # match is found.
+                if any(
+                    [
+                        fnmatch.fnmatch(file["path"], ignore_pattern)
+                        for ignore_pattern
+                        in config.get("temp_paths_ignore", [])
+                    ]
+                ):
+                    continue
+
+                monpy.alert(
+                    f"Executable found in temp dir: {file['path']}",
+                    ident=file["path"]
+                )
 
 @monpy.check(hourly, daily)
 def bin_ownership():
