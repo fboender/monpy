@@ -657,14 +657,17 @@ if "file_integrity_dirs" in config:
         # Only alert if IM_UPDATE isn't set in the environment
         total_changes = len(new) + len(changed) + len(removed)
         if total_changes > 0 and "FIM_UPDATE" not in os.environ:
+            files_new = ", ".join(new)
+            files_changed = ", ".join(changed)
+            files_removed = ", ".join(removed)
             if total_changes < 10:
                 msg = ""
                 if new:
-                    msg += f"New files: {", ".join(new)}."
+                    msg += f"New files: {files_new}."
                 if changed:
-                    msg += f"Changed files: {", ".join(changed)}."
+                    msg += f"Changed files: {files_changed}."
                 if removed:
-                    msg += f"Removed files: {", ".join(removed)}."
+                    msg += f"Removed files: {files_removed}."
             else:
                 msg = f"{len(new)} new files, {len(changed)} changed files, {len(removed)} removed files. See log for more info."
             monpy.alert(msg)
