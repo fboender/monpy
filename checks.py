@@ -911,7 +911,7 @@ if "log_nginx_files" in config:
                     monpy.log().warning(msg)
 
         # Forget IP after not seeing it for 4 hours
-        bucket.vacuum(60 * 60 * 4)
+        bucket.vacuum(datetime.datetime.now() - datetime.timedelta(seconds=60 * 60 * 4))
         bucket.commit()
 
 #############################################################################
