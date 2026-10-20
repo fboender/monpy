@@ -908,7 +908,10 @@ if "log_nginx_files" in config:
                     banned_this_check.append(request['ip'])
 
                     msg = f"Banned IP '{request['ip']}' due to suspicious requests"
-                    monpy.log().warning(msg)
+                    monpy.alert(
+                        request["ip"],
+                        msg
+                    )
 
         # Forget IP after not seeing it for 4 hours
         bucket.vacuum(datetime.datetime.now() - datetime.timedelta(seconds=60 * 60 * 4))
