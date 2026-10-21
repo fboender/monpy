@@ -1,5 +1,6 @@
-import sys
 import os
+import pwd
+import sys
 import shutil
 from pathlib import Path
 
@@ -176,3 +177,27 @@ def temperatures():
             pass
 
         yield temperature_info
+
+
+def users(login=True):
+    """
+    Unix users
+
+    If `login` is False, only yields users with a valid login shell.
+    """
+    for user in pwd.getpwall():
+        if login is True and user.pw_shell in (
+            "/usr/sbin/nologin",
+            "/sbin/nologin",
+            "/bin/false"
+        ):
+            continue
+
+        yield {
+            "username": user.pw_name,
+            "passwd": user.pw_passwd,
+            "uid": user.pw_uid,
+            "gid": user.pw_gid,
+            "home": user.pw_dir,
+            "shell": user.pw_shell
+        }

@@ -857,6 +857,31 @@ if "cve_keywords" in config:
                         alerter=alerter_cve
                     )
 
+@monpy.check(minutely * 15, daily)
+def authorized_keys():
+    """
+    Check authorized_keys
+    """
+    bucket = monpy.bucket("authorized_keys")
+    for user in collectors.system.users(login=True):
+        ak_path = os.path.join(user["home"], ".ssh", "authorized_keys")
+        if not os.path.exists(ak_path):
+            continue
+
+        prev_keys = bucket.get(user["username"], "")
+        with open(ak_path, "r") as fh:
+            cur_keys = fh.read().strip()
+
+        if prev_keys != cur_keys:
+            monpy.alert(
+                f"authorized_keys for user '{user['username']}' has changed",
+                user["username"],
+            )
+        bucket.set(user["username"], cur_keys)
+
+    bucket.vacuum()
+    bucket.commit()
+
 #############################################################################
 # Log monitoring
 #############################################################################
