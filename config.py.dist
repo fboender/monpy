@@ -104,6 +104,20 @@ config = {
     "bin_ownership_ignore": [
     ],
 
+    # File integrity monitoring
+    "file_integrity_dirs": [
+        "/etc",
+        "/bin",
+        "/usr/bin",
+        "/sbin",
+        "/usr/lib/",
+        "/usr/local/bin",
+        "/usr/local/sbin",
+    ],
+    "file_integrity_excludes": [
+        "/etc/opensnitchd/rules/*",
+    ],
+
     # Minimum load over last 15 minutes higher than 0.9
     "load_max": 0.95,
     "load_max_alert_after": 5,

@@ -646,6 +646,7 @@ if "file_integrity_dirs" in config:
         new, changed, removed = collectors.files.integrity(
             config["file_integrity_dirs"],
             monpy,
+            excludes=config["file_integrity_excludes"]
         )
 
         # Log info
