@@ -64,8 +64,9 @@ def file(path):
 
 
 def files(root_dir, name=None, path=None, ftype=None, min_size=None,
-         max_size=None, uid=None, gid=None, perm=None, depth=None,
-         one_fs=True, absolute=False, follow_links=False, on_error=None):
+          max_size=None, uid=None, gid=None, perm=None, depth=None,
+          one_fs=True, absolute=False, follow_links=False, excludes=None,
+          on_error=None):
     """
     Recursively find files and directories matching certain criteria.
 
@@ -105,6 +106,10 @@ def files(root_dir, name=None, path=None, ftype=None, min_size=None,
     as long as the real path lies under `root_dir`. This can lead to endless
     loops. It is disabled by default.
 
+    if `excludes` is given (list of globbing strings), paths are matched
+    against the exclude patterns (using `fnmatch.fnmatch()`), and are ignored
+    if they match.
+
     `on_error` is a callable which will be called when an error occurs. It
     should receive two parameters: the full path to the dir/file that caused
     the problem and the exception. If `on_error` is None (default), an
@@ -140,6 +145,18 @@ def files(root_dir, name=None, path=None, ftype=None, min_size=None,
         try:
             for fname in os.listdir(cur_dir):
                 fpath = os.path.join(cur_dir, fname)
+
+                # Check if path matches any of the excludes. If so, continue
+                # with next file. Also don't recurse into subdirectories.
+                if excludes is not None:
+                    stop = False
+                    for exclude in excludes:
+                        if fnmatch.fnmatch(fpath, exclude):
+                            stop = True
+                            break
+                    if stop is True:
+                        continue
+
                 try:
                     fileinfo = file(fpath)
                 except Exception as err:
@@ -306,11 +323,14 @@ def checksum(path):
     return h.hexdigest()
 
 
-def integrity(dirs, monpy):
+def integrity(dirs, monpy, excludes=None):
     """
     Monitor file integrity of files under `dirs` using sha256 checksums.
     `monpy` is a reference to the MonPy instance, so we can save information to
     its state db.
+
+    If `excludes` is provided (list of globbing strings), it is passed to the
+    `files()` call (see above).
 
     Returns a tuple with three tuples for new, changed and removed files:
 
@@ -328,7 +348,7 @@ def integrity(dirs, monpy):
         monpy.log().debug("Performing file integrity scan on %s", dir)
 
         first_time = bucket.get(dir, True)
-        for file in files(dir):
+        for file in files(dir, excludes=excludes):
             if file["type"] != "file":
                 # Ignore directories, symlinks, etc
                 continue
