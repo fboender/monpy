@@ -643,6 +643,9 @@ def listening_ports():
 if "file_integrity_dirs" in config:
     @monpy.check(hourly * 6, hourly)
     def file_integrity():
+        """
+        Scan directories for new, changed and removed files.
+        """
         new, changed, removed = collectors.files.integrity(
             config["file_integrity_dirs"],
             monpy,
