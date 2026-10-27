@@ -5,7 +5,7 @@ import json
 logger = logging.getLogger(__name__)
 
 
-def pip_audit(site_packages_path, pip_audit_path="pip-audit"):
+def pip_audit(site_packages_path, pip_audit_path="pip-audit", ignore=None):
     """
     Use pip-audit on a site-packages path to scan for installed packages with
     vulnerabilities.
@@ -39,6 +39,10 @@ def pip_audit(site_packages_path, pip_audit_path="pip-audit"):
 
     for dependency in json.loads(proc.stdout)["dependencies"]:
         for vulnerability in dependency.get("vulns", []):
+            if ignore is not None and ignore.get(dependency["name"], "") == dependency["version"]:
+                logger.debug("Package '%s' (v%s) is vulnerable but configured to be ignored", dependency["name"], dependency["version"])
+                continue
+
             yield {
                 "name": dependency["name"],
                 "version": dependency["version"],
