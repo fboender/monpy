@@ -982,7 +982,7 @@ if "pipaudit_venv_roots" in config:
         """
         # Find 'site-packages' directories in venv_path
         for venv_root in config["pipaudit_venv_roots"]:
-            for site_pkg_path in collectors.files.files(venv_root, name="site-packages", config.get("pipaudit_ignore", None)):
+            for site_pkg_path in collectors.files.files(venv_root, name="site-packages", ignore=config.get("pipaudit_ignore", None)):
                 for vuln in collectors.python.pip_audit(site_pkg_path["path"], config["pipaudit_path"]):
                     monpy.alert(
                         f"Package {vuln['name']} v{vuln['version']}' in virtualenv '{site_pkg_path['path']}' vulnerable (fixed in v{vuln['fixed']}): {vuln['vulnerability_id']} {vuln['description']}",
