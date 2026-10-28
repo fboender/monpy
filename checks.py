@@ -886,6 +886,23 @@ def authorized_keys():
     bucket.vacuum()
     bucket.commit()
 
+@monpy.check(minutely, daily)
+def suspicious_procs():
+    """
+    Check for suspicious processes in /proc
+    """
+    deleted_bins = set()
+    for process in collectors.system.processes(extend_status=True):
+        if process["exe"] is None:
+            continue
+
+        if process["exe"].endswith("(deleted)"):
+            deleted_bins.add(process["exe"][:-10])
+
+    if deleted_bins:
+        monpy.alert(f"Binaries in /proc not longer exist on disk: {deleted_bins}")
+
+
 #############################################################################
 # Log monitoring
 #############################################################################
