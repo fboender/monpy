@@ -69,6 +69,7 @@ monpy = MonPy(
     prune_alert_age=daily*7
 )
 
+
 ##############################################################################
 ## System resource monitoring
 ##############################################################################
@@ -149,6 +150,7 @@ if "proc_high_mem_mb" in config:
                     f"Process '{process['exe']}' (pid: {process['pid']}) uses more than {config['proc_high_mem_mb']} MB of memory ({mem_usage_gb:.2f} MM)",
                     ident=process["pid"]
                 )
+
 
 #############################################################################
 # Docker
@@ -309,6 +311,7 @@ def podman_outdated():
                     ident=container_name
                 )
 
+
 #############################################################################
 # Network and website monitoring
 #############################################################################
@@ -446,6 +449,7 @@ if "net_out_conn" in config:
                 pid
             )
 
+
 #############################################################################
 # Server problem and error reporting monitoring
 #############################################################################
@@ -491,6 +495,7 @@ def systemd_failed_units():
             f"Systemd unit '{unit['unit']}' failed.",
             ident=unit["unit"]
         )
+
 
 #############################################################################
 # Security / Indicator of Compromise scans
@@ -962,6 +967,7 @@ if "log_nginx_files" in config:
         # Forget IP after not seeing it for 4 hours
         bucket.vacuum(datetime.datetime.now() - datetime.timedelta(seconds=60 * 60 * 4))
         bucket.commit()
+
 
 #############################################################################
 # Misc stuff
