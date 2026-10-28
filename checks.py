@@ -891,7 +891,7 @@ def authorized_keys():
     bucket.vacuum()
     bucket.commit()
 
-@monpy.check(minutely, daily)
+@monpy.check(minutely * 5, daily)
 def suspicious_procs():
     """
     Check for suspicious processes in /proc
